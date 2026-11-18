@@ -1,0 +1,47 @@
+---
+import Base from '../../../layouts/Base.astro';
+import PhotoView from '../../../components/PhotoView.astro';
+import { getContent } from '../../../lib/content';
+import { ogUrl } from '../../../lib/image';
+import { breadcrumb, imageObject } from '../../../lib/seo';
+import type { Album, Category, Photo } from '../../../lib/types';
+
+export async function getStaticPaths() {
+  const content = await getContent();
+  const bySlug = new Map(content.categories.map((c) => [c.slug, c]));
+  return content.albums
+    .filter((a) => bySlug.get(a.category)?.kind === 'photos')
+    .flatMap((album) =>
+      album.photos.map((photo) => ({
+        params: { category: album.category, album: album.slug, photo: photo.slug },
+        props: { category: bySlug.get(album.category)!, album, photo },
+      })),
+    );
+}
+
+interface Props {
+  category: Category;
+  album: Album;
+  photo: Photo;
+}
+
+const { category, album, photo } = Astro.props;
+const site = Astro.site;
+const name = photo.title ?? photo.species[0]?.name ?? album.title;
+const ld = [
+  { '@context': 'https://schema.org', ...imageObject(photo, site) },
+  breadcrumb(
+    [
+      { name: 'Home', path: '/' },
+      { name: category.title, path: category.href },
+      { name: album.title, path: album.href },
+      { name, path: photo.href },
+    ],
+    site,
+  ),
+];
+---
+
+<Base title={`${name} · ${album.title}`} description={photo.caption ?? photo.alt} image={ogUrl(photo.image)} mode={category.code} jsonLd={ld} bare>
+  <PhotoView photo={photo} list={album.photos} label={`${category.title} / ${album.title}`} backHref={album.href} backLabel={album.title} />
+</Base>

@@ -1,0 +1,347 @@
+---
+import Base from '../layouts/Base.astro';
+import HeroIntro from '../components/HeroIntro.astro';
+import Img from '../components/Img.astro';
+import { albumsOf, filmsOf, getContent, photosOf, stats } from '../lib/content';
+
+const content = await getContent();
+const { settings, about } = content;
+const s = stats(content);
+
+const tiles = content.categories.map((c) => {
+  const fallback = c.kind === 'films' ? filmsOf(content, c.slug)[0]?.poster : (albumsOf(content, c.slug)[0]?.cover ?? photosOf(content, c)[0])?.image;
+  return { c, img: c.cover ?? fallback, alt: c.coverAlt ?? `${c.title} photography by Ayush Gandhi` };
+});
+
+const statItems = [
+  { k: 'Species', v: s.species },
+  { k: 'Trips', v: s.trips },
+  { k: 'Places', v: s.places },
+  { k: 'Frames', v: s.frames },
+].filter((x) => x.v > 0);
+
+const f = settings.featured;
+const fe = f?.photo.exif;
+const site = Astro.site?.href;
+const jsonLd = { '@context': 'https://schema.org', '@type': 'WebSite', name: settings.title, url: site, inLanguage: 'en' };
+---
+
+<Base jsonLd={jsonLd}>
+  <script is:inline slot="head">
+    // Decide before first paint whether this visit gets the intro.
+    (() => {
+      try {
+        if (!sessionStorage.getItem('ag-intro') && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+          document.documentElement.classList.add('intro');
+          sessionStorage.setItem('ag-intro', '1');
+        }
+      } catch {}
+    })();
+  </script>
+
+  {settings.hero.length > 0 && <HeroIntro heroes={settings.hero} tagline={settings.tagline} />}
+
+  <section class="section wrap" aria-labelledby="cats-title">
+    <div class="section-head">
+      <h2 id="cats-title" class="section-title"><span class="num">01</span>Categories</h2>
+      <span class="label">Or turn the dial ↗</span>
+    </div>
+    <div class="tiles">
+      {
+        tiles.map(({ c, img, alt }) => (
+          <a class="tile" href={c.href}>
+            <div class="tile-img protect">
+              <Img img={img} alt={alt} sizes="(max-width: 640px) 50vw, 20vw" />
+              <div class="brackets">
+                <i />
+                <i />
+                <i />
+                <i />
+              </div>
+              <span class="tile-code mono">{c.code}</span>
+            </div>
+            <span class="tile-name">
+              {c.title}
+              {c.main && <span class="main mono">main</span>}
+            </span>
+          </a>
+        ))
+      }
+    </div>
+  </section>
+
+  {
+    f && (
+      <section class="wrap" aria-labelledby="ff-title">
+        <div class="featured grid-2">
+          <a class="ff-img protect" href={f.href ?? f.photo.href}>
+            <Img img={f.photo.image} alt={f.photo.alt} sizes="(max-width: 860px) 100vw, 60vw" />
+            <div class="brackets">
+              <i />
+              <i />
+              <i />
+              <i />
+            </div>
+          </a>
+          <div class="ff-text">
+            <p class="label label-accent">02 — Featured frame</p>
+            <h2 id="ff-title" class="ff-title">{f.title ?? f.photo.title ?? f.photo.species[0]?.name ?? 'Featured frame'}</h2>
+            {f.story && <p class="lede">{f.story}</p>}
+            <dl class="kv">
+              {fe?.camera && (
+                <div>
+                  <dt>Body</dt>
+                  <dd>{fe.camera}</dd>
+                </div>
+              )}
+              {fe?.lens && (
+                <div>
+                  <dt>Lens</dt>
+                  <dd>{fe.lens}</dd>
+                </div>
+              )}
+              {(fe?.shutter || fe?.aperture || fe?.iso) && (
+                <div>
+                  <dt>Exposure</dt>
+                  <dd>{[fe?.aperture, fe?.shutter, fe?.iso && `ISO ${fe.iso}`].filter(Boolean).join(' · ')}</dd>
+                </div>
+              )}
+              {f.photo.location && (
+                <div>
+                  <dt>Place</dt>
+                  <dd>{f.photo.location}</dd>
+                </div>
+              )}
+            </dl>
+            {f.href && (
+              <a class="pill" href={f.href}>
+                View the album →
+              </a>
+            )}
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  {
+    statItems.length > 0 && (
+      <section class="section wrap" aria-label="In numbers">
+        <div class="stats">
+          {statItems.map((x) => (
+            <div class="stat">
+              <span class="label">{x.k}</span>
+              <span class="stat-v">{x.v}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+    )
+  }
+
+  <section class="section wrap about" aria-labelledby="about-title">
+    <div class="about-img protect">
+      <Img img={about.portrait} alt={about.portraitAlt ?? 'Portrait of Ayush Gandhi'} sizes="(max-width: 860px) 60vw, 280px" />
+      <div class="brackets">
+        <i />
+        <i />
+        <i />
+        <i />
+      </div>
+    </div>
+    <div class="about-text">
+      <p class="label">03 — About</p>
+      <h2 id="about-title" class="section-title">Behind the lens.</h2>
+      {about.intro && <p class="lede">{about.intro}</p>}
+      <a href="/about/" class="mono more">MORE ABOUT ME →</a>
+    </div>
+    {
+      about.gear.length > 0 && (
+        <ul class="gear mono" aria-label="Gear">
+          <li class="label">Kit</li>
+          {about.gear.map((g) => (
+            <li>
+              <span class="gk">{g.kind}</span>
+              {g.name}
+            </li>
+          ))}
+        </ul>
+      )
+    }
+  </section>
+</Base>
+
+<style>
+  .tiles {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+  }
+  .tile {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    color: var(--text);
+  }
+  .tile-img {
+    position: relative;
+    aspect-ratio: 4 / 5;
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .tile-img :global(.img) {
+    transition: transform 0.7s var(--ease);
+  }
+  .tile:hover .tile-img :global(.img) {
+    transform: scale(1.04);
+  }
+  .tile .brackets {
+    --b: #c9dbbe;
+  }
+  .tile .brackets > i {
+    opacity: 0;
+    transform: scale(1.2);
+    transition: opacity 0.25s, transform 0.35s var(--ease);
+  }
+  .tile:hover .brackets > i,
+  .tile:focus-visible .brackets > i {
+    opacity: 1;
+    transform: none;
+  }
+  .tile-code {
+    position: absolute;
+    left: 14px;
+    bottom: 14px;
+    padding: 5px 10px;
+    border-radius: 8px;
+    font-size: 11px;
+    color: #e7ecdf;
+    background: rgb(20 24 19 / 0.75);
+  }
+  .tile-name {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font: 700 18px var(--display);
+    letter-spacing: -0.02em;
+  }
+  .main {
+    padding: 3px 10px;
+    border-radius: 999px;
+    background: var(--accent);
+    color: var(--on-accent);
+    font-size: 11px;
+    font-weight: 400;
+    letter-spacing: 0;
+  }
+
+  .featured {
+    padding: clamp(16px, 2vw, 24px);
+    border-radius: 28px;
+    background: var(--surface);
+    align-items: stretch;
+  }
+  .ff-img {
+    position: relative;
+    display: block;
+    aspect-ratio: 3 / 2;
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .ff-img .brackets {
+    --b: #c9dbbe;
+  }
+  .ff-text {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 18px;
+    padding: 8px;
+  }
+  .ff-title {
+    font-size: clamp(32px, 3.4vw, 46px);
+    line-height: 1;
+  }
+  .ff-text .kv > div {
+    background: var(--bg);
+  }
+  .ff-text .pill {
+    align-self: flex-start;
+  }
+
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+  }
+  .stat {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 26px;
+    border-radius: var(--radius);
+    border: 1px solid var(--line);
+  }
+  .stat-v {
+    font: 800 clamp(56px, 6vw, 80px) / 1 var(--display);
+    letter-spacing: -0.05em;
+    color: var(--accent-ink);
+  }
+
+  .about {
+    display: grid;
+    grid-template-columns: 280px 1fr 1fr;
+    gap: clamp(28px, 4vw, 56px);
+    align-items: start;
+    padding-top: 0;
+  }
+  .about-img {
+    position: relative;
+    aspect-ratio: 4 / 5;
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .about-img .brackets {
+    inset: 12px;
+    --s: 18px;
+  }
+  .about-img .brackets > i:nth-child(2),
+  .about-img .brackets > i:nth-child(3) {
+    display: none;
+  }
+  .about-text {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .more {
+    font-size: 13px;
+  }
+  .gear {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-size: 14px;
+  }
+  .gear li:not(.label) {
+    padding: 14px 18px;
+    border-radius: 12px;
+    background: var(--surface);
+  }
+  .gk {
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-right: 10px;
+  }
+  @media (max-width: 960px) {
+    .about {
+      grid-template-columns: 1fr;
+    }
+    .about-img {
+      max-width: 320px;
+    }
+  }
+</style>

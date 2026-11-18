@@ -1,0 +1,247 @@
+---
+import Base from '../layouts/Base.astro';
+import Img from '../components/Img.astro';
+import { getContent } from '../lib/content';
+import { ogUrl } from '../lib/image';
+import { renderBody } from '../lib/portable';
+import { breadcrumb, person } from '../lib/seo';
+
+const content = await getContent();
+const { about, settings } = content;
+const bio = renderBody(about.bio);
+const ld = [
+  { '@context': 'https://schema.org', ...person(Astro.site, [settings.instagram, settings.youtube]), image: ogUrl(about.portrait) },
+  breadcrumb(
+    [
+      { name: 'Home', path: '/' },
+      { name: 'About', path: '/about/' },
+    ],
+    Astro.site,
+  ),
+];
+---
+
+<Base title="About" description={about.intro ?? 'About Ayush Gandhi, photographer.'} image={ogUrl(about.portrait)} nav="about" jsonLd={ld}>
+  <section class="wrap hero grid-2">
+    <div class="portrait protect">
+      <Img img={about.portrait} alt={about.portraitAlt ?? 'Portrait of Ayush Gandhi'} eager sizes="(max-width: 860px) 100vw, 45vw" />
+      <div class="brackets"><i></i><i></i><i></i><i></i></div>
+    </div>
+    <div class="text">
+      <p class="label">About</p>
+      <h1 class="title">Behind<br /><span class="accent">the lens.</span></h1>
+      <div class="bio" set:html={bio} />
+      {about.basedIn && <p class="mono based">Based in {about.basedIn}</p>}
+    </div>
+  </section>
+
+  <section class="wrap section two">
+    <div>
+      <h2 class="section-title">What I shoot</h2>
+      <ul class="modes">
+        {
+          content.categories.map((c) => (
+            <li>
+              <a class="mode" href={c.href}>
+                <span class="mono code">{c.code}</span>
+                <span class="name">
+                  {c.title}
+                  {c.main && <span class="mono tag">MAIN</span>}
+                </span>
+                <span class="go" aria-hidden="true">
+                  →
+                </span>
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+    {
+      about.gear.length > 0 && (
+        <div>
+          <h2 class="section-title">In the bag</h2>
+          <ul class="gear mono">
+            {about.gear.map((g) => (
+              <li>
+                <span class="gk">{g.kind}</span>
+                <span>{g.name}</span>
+              </li>
+            ))}
+          </ul>
+          {about.software && <p class="mono soft">Edited in {about.software}.</p>}
+        </div>
+      )
+    }
+  </section>
+
+  {
+    (settings.instagram || settings.youtube) && (
+      <section class="wrap">
+        <div class="else card">
+          <div>
+            <p class="label label-accent">Elsewhere</p>
+            <h2 class="else-title">Follow along in the field.</h2>
+          </div>
+          <div class="else-links">
+            {settings.instagram && (
+              <a class="pill pill-solid" href={settings.instagram} rel="me noopener" target="_blank">
+                Instagram
+              </a>
+            )}
+            {settings.youtube && (
+              <a class="pill" href={settings.youtube} rel="me noopener" target="_blank">
+                YouTube
+              </a>
+            )}
+          </div>
+        </div>
+      </section>
+    )
+  }
+  <div class="section"></div>
+</Base>
+
+<style>
+  .hero {
+    padding-top: clamp(32px, 5vw, 56px);
+    grid-template-columns: 1fr 1.15fr;
+  }
+  .portrait {
+    position: relative;
+    aspect-ratio: 4 / 5;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+  }
+  .portrait .brackets > i:nth-child(2),
+  .portrait .brackets > i:nth-child(3) {
+    display: none;
+  }
+  .text {
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+  }
+  .title {
+    font-size: clamp(52px, 6.5vw, 96px);
+    line-height: 0.9;
+    letter-spacing: -0.05em;
+  }
+  .accent {
+    color: var(--accent-ink);
+  }
+  .bio {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .bio :global(p) {
+    font-size: clamp(17px, 1.5vw, 20px);
+    line-height: 1.65;
+    color: var(--text-soft);
+  }
+  .based {
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .two {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr;
+    gap: clamp(32px, 5vw, 64px);
+    align-items: start;
+  }
+  .modes,
+  .gear {
+    list-style: none;
+    margin: 20px 0 0;
+    padding: 0;
+  }
+  .mode {
+    display: grid;
+    grid-template-columns: 64px 1fr auto;
+    gap: 20px;
+    align-items: center;
+    padding: 18px 0;
+    border-top: 1px solid var(--line);
+    color: var(--text);
+  }
+  .modes li:last-child .mode {
+    border-bottom: 1px solid var(--line);
+  }
+  .mode:hover {
+    color: var(--text);
+  }
+  .mode:hover .name {
+    color: var(--accent-ink);
+  }
+  .code {
+    font-size: 13px;
+    color: var(--accent-ink);
+  }
+  .name {
+    font: 700 24px var(--display);
+    letter-spacing: -0.02em;
+    transition: color 0.2s;
+  }
+  .tag {
+    margin-left: 8px;
+    font-size: 11px;
+    font-weight: 400;
+    letter-spacing: 0;
+    color: var(--muted);
+  }
+  .go {
+    color: var(--muted);
+  }
+  .gear {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .gear li {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 16px 18px;
+    border-radius: 14px;
+    background: var(--surface);
+    font-size: 14px;
+  }
+  .gk {
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+  .soft {
+    margin-top: 12px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .else {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 24px;
+    padding: clamp(24px, 3vw, 40px);
+    border-radius: 28px;
+  }
+  .else-title {
+    margin-top: 10px;
+    font-size: clamp(30px, 3.4vw, 44px);
+    line-height: 1;
+  }
+  .else-links {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  @media (max-width: 860px) {
+    .hero,
+    .two {
+      grid-template-columns: 1fr;
+    }
+    .portrait {
+      max-width: 420px;
+    }
+  }
+</style>

@@ -1,0 +1,413 @@
+---
+/** An album page (photo categories) or a film page (film categories). */
+import Base from '../../../layouts/Base.astro';
+import Img from '../../../components/Img.astro';
+import Gallery from '../../../components/Gallery.astro';
+import Lightbox from '../../../components/Lightbox.astro';
+import VideoFacade from '../../../components/VideoFacade.astro';
+import { albumsOf, filmsOf, getContent } from '../../../lib/content';
+import { formatRange } from '../../../lib/format';
+import { ogUrl } from '../../../lib/image';
+import { breadcrumb, gallery, video } from '../../../lib/seo';
+import type { Album, Category, Film } from '../../../lib/types';
+
+export async function getStaticPaths() {
+  const content = await getContent();
+  const bySlug = new Map(content.categories.map((c) => [c.slug, c]));
+  const albums = content.albums
+    .filter((a) => bySlug.get(a.category)?.kind === 'photos')
+    .map((album) => ({ params: { category: album.category, album: album.slug }, props: { category: bySlug.get(album.category)!, album } }));
+  const films = content.films
+    .filter((f) => bySlug.get(f.category)?.kind === 'films')
+    .map((film) => ({ params: { category: film.category, album: film.slug }, props: { category: bySlug.get(film.category)!, film } }));
+  return [...albums, ...films];
+}
+
+interface Props {
+  category: Category;
+  album?: Album;
+  film?: Film;
+}
+
+const { category, album, film } = Astro.props;
+const content = await getContent();
+const site = Astro.site;
+
+/* ---------- album ---------- */
+const siblings = album ? albumsOf(content, category.slug) : [];
+const idx = album ? siblings.indexOf(album) : -1;
+const prev = idx >= 0 ? siblings[idx + 1] : undefined; // older
+const next = idx > 0 ? siblings[idx - 1] : undefined; // newer
+const story = album?.storyId ? content.stories.find((s) => s.id === album.storyId) : undefined;
+const speciesList = album ? [...new Map(album.photos.flatMap((p) => p.species).map((s) => [s.id, s])).values()] : [];
+
+const mostCommon = (values: (string | undefined)[]) => {
+  const counts = new Map<string, number>();
+  values.filter(Boolean).forEach((v) => counts.set(v!, (counts.get(v!) ?? 0) + 1));
+  return [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
+};
+const kit = album ? [mostCommon(album.photos.map((p) => p.exif.camera)), mostCommon(album.photos.map((p) => p.exif.lens))].filter(Boolean).join(' + ') : '';
+
+/* ---------- film ---------- */
+const moreFilms = film ? filmsOf(content, category.slug).filter((f) => f !== film).slice(0, 3) : [];
+
+const title = album?.title ?? film?.title ?? '';
+const crumbs = breadcrumb(
+  [
+    { name: 'Home', path: '/' },
+    { name: category.title, path: category.href },
+    { name: title, path: album?.href ?? film!.href },
+  ],
+  site,
+);
+const ld = album ? [crumbs, gallery(album.title, album.href, album.photos, site, album.description)] : [crumbs, video(film!, site)];
+const description = album
+  ? album.description ?? `${album.title} — ${category.title.toLowerCase()} photographs by Ayush Gandhi${album.location ? `, ${album.location}` : ''}.`
+  : film!.description ?? `${film!.title} — a film by Ayush Gandhi.`;
+---
+
+<Base title={title} description={description} image={ogUrl(album?.cover?.image ?? film?.poster)} mode={category.code} jsonLd={ld}>
+  {
+    album && (
+      <>
+        <section class="wrap">
+          <div class="cover protect">
+            <Img img={album.cover?.image} alt={album.cover?.alt ?? album.title} eager sizes="100vw" />
+            <div class="brackets">
+              <i />
+              <i />
+              <i />
+              <i />
+            </div>
+            <div class="cover-text">
+              <nav aria-label="Breadcrumb" class="breadcrumb on-photo">
+                <a href="/">Home</a> / <a href={category.href}>{category.title}</a> / <span aria-current="page">{album.title}</span>
+              </nav>
+              <h1 class="cover-title">{album.title}</h1>
+            </div>
+          </div>
+        </section>
+
+        <section class="wrap intro grid-2">
+          {album.description ? <p class="lede">{album.description}</p> : <span />}
+          <dl class="kv">
+            {album.location && (
+              <div>
+                <dt>Place</dt>
+                <dd>{album.location}</dd>
+              </div>
+            )}
+            {formatRange(album.dateStart, album.dateEnd) && (
+              <div>
+                <dt>Dates</dt>
+                <dd>{formatRange(album.dateStart, album.dateEnd)}</dd>
+              </div>
+            )}
+            {speciesList.length > 0 && (
+              <div>
+                <dt>Species</dt>
+                <dd>{speciesList.length}</dd>
+              </div>
+            )}
+            <div>
+              <dt>Frames</dt>
+              <dd>{album.photos.length}</dd>
+            </div>
+            {kit && (
+              <div class="wide">
+                <dt>Main kit</dt>
+                <dd>{kit}</dd>
+              </div>
+            )}
+          </dl>
+        </section>
+
+        <section class="wrap gallery-sec" aria-label="Photos">
+          {speciesList.length > 1 && (
+            <div class="filters" role="group" aria-label="Filter by species" data-filters>
+              <button class="chip" type="button" aria-pressed="true" data-filter="">
+                All
+              </button>
+              {speciesList.map((s) => (
+                <button class="chip" type="button" aria-pressed="false" data-filter={s.id} title={s.scientific}>
+                  {s.name}
+                </button>
+              ))}
+            </div>
+          )}
+          <Gallery photos={album.photos} label={`${category.title} / ${album.title}`} />
+          <Lightbox />
+        </section>
+
+        {story && (
+          <section class="wrap">
+            <a class="story card" href={story.href}>
+              <span class="story-img">
+                <Img img={story.cover} alt={story.coverAlt ?? story.title} sizes="320px" />
+              </span>
+              <span class="story-text">
+                <span class="label label-accent">From the journal</span>
+                <span class="story-title">{story.title}</span>
+                <span class="mono story-meta">{story.readMins} min read</span>
+              </span>
+              <span class="arrow" aria-hidden="true">
+                →
+              </span>
+            </a>
+          </section>
+        )}
+
+        {(prev || next) && (
+          <nav class="wrap pager section" aria-label="More albums">
+            {prev ? (
+              <a class="pg card" href={prev.href}>
+                <span class="label">← Previous</span>
+                <span class="pg-title">{prev.title}</span>
+              </a>
+            ) : (
+              <span />
+            )}
+            {next && (
+              <a class="pg card right" href={next.href}>
+                <span class="label">Next →</span>
+                <span class="pg-title">{next.title}</span>
+              </a>
+            )}
+          </nav>
+        )}
+      </>
+    )
+  }
+
+  {
+    film && (
+      <>
+        <section class="wrap film-head">
+          <nav aria-label="Breadcrumb" class="breadcrumb">
+            <a href="/">Home</a> / <a href={category.href}>{category.title}</a> / <span aria-current="page">{film.title}</span>
+          </nav>
+          <h1 class="film-title">{film.title}</h1>
+        </section>
+        <section class="wrap">
+          <VideoFacade film={film} large eager />
+        </section>
+        <section class="wrap section film-info grid-2">
+          {film.description ? <p class="lede">{film.description}</p> : <span />}
+          <dl class="kv">
+            {film.year && (
+              <div>
+                <dt>Year</dt>
+                <dd>{film.year}</dd>
+              </div>
+            )}
+            {film.length && (
+              <div>
+                <dt>Length</dt>
+                <dd>{film.length}</dd>
+              </div>
+            )}
+            {film.role && (
+              <div>
+                <dt>Role</dt>
+                <dd>{film.role}</dd>
+              </div>
+            )}
+            {film.format && (
+              <div>
+                <dt>Format</dt>
+                <dd>{film.format}</dd>
+              </div>
+            )}
+          </dl>
+        </section>
+        {moreFilms.length > 0 && (
+          <section class="wrap section more">
+            <h2 class="section-title">More films</h2>
+            <div class="more-grid">
+              {moreFilms.map((f) => (
+                <a class="more-card" href={f.href}>
+                  <span class="more-img">
+                    <Img img={f.poster} alt="" sizes="(max-width: 640px) 100vw, 33vw" />
+                  </span>
+                  <span class="more-title">{f.title}</span>
+                </a>
+              ))}
+            </div>
+          </section>
+        )}
+      </>
+    )
+  }
+</Base>
+
+<script>
+  document.querySelectorAll<HTMLElement>('[data-filters]').forEach((group) => {
+    const gallery = group.parentElement?.querySelector<HTMLElement>('[data-gallery]');
+    group.addEventListener('click', (e) => {
+      const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-filter]');
+      if (!btn || !gallery) return;
+      const id = btn.dataset.filter ?? '';
+      group.querySelectorAll('[data-filter]').forEach((b) => b.setAttribute('aria-pressed', String(b === btn)));
+      gallery.querySelectorAll<HTMLElement>('[data-lb]').forEach((a) => {
+        a.hidden = Boolean(id) && !(a.dataset.species ?? '').split(' ').includes(id);
+      });
+    });
+  });
+</script>
+
+<style>
+  .cover {
+    position: relative;
+    height: clamp(420px, 62vh, 680px);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    background: var(--photo-bg);
+  }
+  .cover .brackets {
+    --b: #c9dbbe;
+  }
+  .cover-text {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: 120px clamp(20px, 4vw, 56px) clamp(28px, 4vw, 48px);
+    background: linear-gradient(0deg, rgb(20 24 19 / 0.9), transparent);
+    color: #e7ecdf;
+  }
+  .on-photo,
+  .on-photo a {
+    color: #b9c2b1;
+  }
+  .on-photo [aria-current] {
+    color: #e7ecdf;
+  }
+  .cover-title {
+    margin-top: 14px;
+    font-size: clamp(44px, 7vw, 104px);
+    line-height: 0.9;
+    letter-spacing: -0.05em;
+  }
+  .intro {
+    padding-block: clamp(36px, 5vw, 56px);
+    align-items: start;
+  }
+  .gallery-sec {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding-bottom: clamp(48px, 6vw, 72px);
+  }
+  .filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .story {
+    display: grid;
+    grid-template-columns: 260px 1fr auto;
+    gap: 28px;
+    align-items: center;
+    padding: 18px;
+    color: var(--text);
+  }
+  .story:hover {
+    border-color: var(--accent-ink);
+    color: var(--text);
+  }
+  .story-img {
+    display: block;
+    aspect-ratio: 3 / 2;
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .story-text {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .story-title {
+    font: 700 clamp(20px, 2vw, 26px) var(--display);
+    letter-spacing: -0.02em;
+  }
+  .story-meta {
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .arrow {
+    color: var(--accent-ink);
+    font-size: 20px;
+    padding-right: 8px;
+  }
+  .pager {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .pg {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 22px;
+    color: var(--text);
+  }
+  .pg:hover {
+    border-color: var(--accent-ink);
+    color: var(--text);
+  }
+  .pg.right {
+    text-align: right;
+  }
+  .pg-title {
+    font: 700 22px var(--display);
+    letter-spacing: -0.02em;
+  }
+  .film-head {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding-top: clamp(32px, 5vw, 56px);
+    padding-bottom: 32px;
+  }
+  .film-title {
+    font-size: clamp(44px, 7vw, 104px);
+    line-height: 0.9;
+    letter-spacing: -0.05em;
+  }
+  .film-info {
+    align-items: start;
+  }
+  .more-grid {
+    margin-top: 24px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr));
+    gap: 20px;
+  }
+  .more-card {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    color: var(--text);
+  }
+  .more-img {
+    display: block;
+    aspect-ratio: 16 / 9;
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .more-title {
+    font: 700 18px var(--display);
+    letter-spacing: -0.02em;
+  }
+  @media (max-width: 760px) {
+    .story {
+      grid-template-columns: 1fr;
+    }
+    .arrow {
+      display: none;
+    }
+    .pager {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

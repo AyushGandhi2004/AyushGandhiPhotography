@@ -1,0 +1,54 @@
+---
+import type { Img } from '../lib/types';
+import { imgUrl, objectPosition, srcset } from '../lib/image';
+
+interface Props {
+  img?: Img;
+  alt: string;
+  /** Rendered width hint for the browser, e.g. "(max-width: 860px) 100vw, 60vw". */
+  sizes?: string;
+  /** Above-the-fold images: load immediately at high priority. */
+  eager?: boolean;
+  fit?: 'cover' | 'contain';
+  class?: string;
+  style?: string;
+}
+
+const { img, alt, sizes = '100vw', eager = false, fit = 'cover', class: cls = '', style = '' } = Astro.props;
+const src = img ? imgUrl(img, 1200) : undefined;
+const set = img ? srcset(img) : undefined;
+const pos = img ? objectPosition(img) : '50% 50%';
+const bg = img?.lqip ? `background-image:url(${img.lqip});background-size:cover;background-position:${pos};` : '';
+---
+
+{
+  img && src ? (
+    <img
+      class:list={['img', cls]}
+      src={src}
+      srcset={set}
+      sizes={sizes}
+      width={img.width}
+      height={img.height}
+      alt={alt}
+      loading={eager ? 'eager' : 'lazy'}
+      decoding={eager ? 'sync' : 'async'}
+      fetchpriority={eager ? 'high' : 'auto'}
+      draggable="false"
+      style={`object-fit:${fit};object-position:${pos};${bg}${style}`}
+    />
+  ) : (
+    <div class:list={['img img-demo', cls]} role="img" aria-label={alt} style={`background:${img?.tone ?? 'var(--surface)'};${style}`} />
+  )
+}
+
+<style>
+  .img {
+    width: 100%;
+    height: 100%;
+    background-color: var(--surface);
+  }
+  .img-demo {
+    background-size: cover !important;
+  }
+</style>

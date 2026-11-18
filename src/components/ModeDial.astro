@@ -1,0 +1,301 @@
+---
+import type { DialMode } from '../lib/content';
+
+interface Props {
+  modes: DialMode[];
+  /** Code of the active mode; AUTO on non-category pages. */
+  current: string;
+}
+
+const { modes, current } = Astro.props;
+const step = 360 / modes.length;
+const active = Math.max(0, modes.findIndex((m) => m.code === current));
+const activeName = modes[active]?.name ?? 'Auto';
+const positions = modes.map((m, i) => {
+  const a = (i * step * Math.PI) / 180;
+  return { ...m, i, left: 50 + 38.5 * Math.sin(a), top: 50 - 38.5 * Math.cos(a) };
+});
+---
+
+<details class="dial" data-dial data-step={step}>
+  <summary class="dial-pill" aria-label={`Mode dial. Current mode: ${activeName}. Open to switch category.`}>
+    <span class="dial-read mono" aria-hidden="true"><span class="dial-k">MODE</span><span class="dial-name" data-dial-name>{activeName}</span></span>
+    <span class="knob" aria-hidden="true">
+      <span class="knob-in"></span>
+      <span class="ind" style={`--deg:${active * step}deg`} data-dial-ind></span>
+    </span>
+  </summary>
+  <div class="dial-pop">
+    <div class="ring-wrap">
+      <span class="pointer" aria-hidden="true"></span>
+      <nav class="ring" aria-label="Categories" style={`--rot:${-active * step}deg`} data-dial-ring>
+        <span class="ring-in" aria-hidden="true"></span>
+        {
+          positions.map((m) => (
+            <a
+              class:list={['pos mono', { on: m.i === active, long: m.code.length > 2 }]}
+              href={m.href}
+              data-i={m.i}
+              data-name={m.name}
+              aria-label={m.name}
+              aria-current={m.i === active ? 'page' : undefined}
+              style={`left:${m.left.toFixed(2)}%;top:${m.top.toFixed(2)}%`}
+            >
+              {m.code}
+            </a>
+          ))
+        }
+      </nav>
+      <div class="center" aria-hidden="true">
+        <span class="mono dial-k">MODE</span>
+        <span class="center-name" data-dial-center>{activeName}</span>
+      </div>
+    </div>
+    <p class="hint mono">Each position opens that category · ← → to turn</p>
+  </div>
+</details>
+
+<script>
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  document.querySelectorAll<HTMLDetailsElement>('[data-dial]').forEach((dial) => {
+    const step = Number(dial.dataset.step);
+    const ring = dial.querySelector<HTMLElement>('[data-dial-ring]')!;
+    const ind = dial.querySelector<HTMLElement>('[data-dial-ind]')!;
+    const center = dial.querySelector<HTMLElement>('[data-dial-center]')!;
+    const links = [...dial.querySelectorAll<HTMLAnchorElement>('.pos')];
+
+    const turnTo = (i: number) => {
+      ring.style.setProperty('--rot', `${-i * step}deg`);
+      ind.style.setProperty('--deg', `${i * step}deg`);
+      center.textContent = links[i].dataset.name ?? '';
+    };
+
+    dial.addEventListener('toggle', () => {
+      if (dial.open) (links.find((l) => l.classList.contains('on')) ?? links[0]).focus({ preventScroll: true });
+    });
+
+    document.addEventListener('click', (e) => {
+      if (dial.open && !dial.contains(e.target as Node)) dial.open = false;
+    });
+
+    dial.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && dial.open) {
+        dial.open = false;
+        dial.querySelector('summary')?.focus();
+        return;
+      }
+      if (!dial.open) return;
+      const idx = links.indexOf(document.activeElement as HTMLAnchorElement);
+      const delta = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? -1 : 0;
+      if (!delta) return;
+      e.preventDefault();
+      const next = (Math.max(idx, 0) + delta + links.length) % links.length;
+      links[next].focus();
+      turnTo(next);
+    });
+
+    // Turn the dial to the picked mode, then go there.
+    links.forEach((link, i) => {
+      link.addEventListener('click', (e) => {
+        if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+        if (link.getAttribute('aria-current') === 'page') {
+          e.preventDefault();
+          dial.open = false;
+          return;
+        }
+        if (reduce) return;
+        e.preventDefault();
+        turnTo(i);
+        setTimeout(() => (window.location.href = link.href), 340);
+      });
+    });
+  });
+</script>
+
+<style>
+  .dial {
+    position: relative;
+  }
+  .dial-pill {
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 5px 5px 5px 16px;
+    border-radius: 999px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    cursor: pointer;
+    user-select: none;
+  }
+  .dial-pill::-webkit-details-marker {
+    display: none;
+  }
+  .dial-read {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    line-height: 1.3;
+  }
+  .dial-k {
+    font-size: 10px;
+    color: var(--muted);
+  }
+  .dial-name {
+    font-size: 13px;
+    color: var(--accent-ink);
+  }
+  .knob {
+    position: relative;
+    display: block;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    border: 1px solid var(--line-strong);
+    background: repeating-conic-gradient(var(--knurl-a) 0 5deg, var(--knurl-b) 5deg 10deg);
+    transition: border-color 0.2s;
+  }
+  .dial-pill:hover .knob,
+  .dial[open] .knob {
+    border-color: var(--accent-ink);
+  }
+  .knob-in {
+    position: absolute;
+    inset: 7px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 40% 32%, var(--knob-hi), var(--knob-lo) 75%);
+  }
+  .ind {
+    position: absolute;
+    left: 50%;
+    top: 5px;
+    width: 3px;
+    height: 14px;
+    margin-left: -1.5px;
+    border-radius: 2px;
+    background: var(--accent-ink);
+    transform-origin: 1.5px 21px;
+    transform: rotate(var(--deg));
+    transition: transform 0.55s cubic-bezier(0.3, 1.5, 0.5, 1);
+  }
+
+  .dial-pop {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 12px);
+    z-index: 50;
+    width: 300px;
+    padding: 22px 22px 16px;
+    border-radius: 26px;
+    background: color-mix(in srgb, var(--surface) 96%, transparent);
+    border: 1px solid var(--line-strong);
+    box-shadow: 0 30px 80px rgb(0 0 0 / 0.45);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    animation: pop 0.25s var(--ease);
+  }
+  @keyframes pop {
+    from { opacity: 0; transform: translateY(-6px) scale(0.98); }
+  }
+  .ring-wrap {
+    position: relative;
+    width: 256px;
+    height: 256px;
+  }
+  .pointer {
+    position: absolute;
+    left: 50%;
+    top: -10px;
+    z-index: 2;
+    margin-left: -8px;
+    border-left: 8px solid transparent;
+    border-right: 8px solid transparent;
+    border-top: 12px solid var(--accent-ink);
+  }
+  .ring {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 1px solid var(--line-strong);
+    background: repeating-conic-gradient(var(--line) 0 3deg, var(--surface) 3deg 6deg);
+    transform: rotate(var(--rot));
+    transition: transform 0.6s cubic-bezier(0.3, 1.3, 0.5, 1);
+  }
+  .ring-in {
+    position: absolute;
+    inset: 16px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 45% 35%, var(--raised), var(--bg) 75%);
+  }
+  .pos {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 46px;
+    height: 46px;
+    margin: -23px 0 0 -23px;
+    border-radius: 50%;
+    border: 1px solid var(--line-strong);
+    background: var(--bg);
+    color: var(--text);
+    font-size: 12px;
+    font-weight: 500;
+    transform: rotate(calc(-1 * var(--rot)));
+    transition: transform 0.6s cubic-bezier(0.3, 1.3, 0.5, 1), border-color 0.2s, background 0.2s;
+  }
+  .pos.long {
+    font-size: 10px;
+  }
+  .pos:hover,
+  .pos:focus-visible {
+    border-color: var(--accent-ink);
+    color: var(--text);
+  }
+  .pos.on {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--on-accent);
+  }
+  .center {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    pointer-events: none;
+  }
+  .center-name {
+    font: 700 21px var(--display);
+    letter-spacing: -0.02em;
+    color: var(--accent-ink);
+    max-width: 120px;
+  }
+  .hint {
+    font-size: 11px;
+    color: var(--muted);
+    text-align: center;
+  }
+
+  @media (max-width: 520px) {
+    .dial-read {
+      display: none;
+    }
+    .dial-pill {
+      padding: 4px;
+    }
+    .dial-pop {
+      position: fixed;
+      left: 16px;
+      right: 16px;
+      top: 76px;
+      width: auto;
+    }
+  }
+</style>

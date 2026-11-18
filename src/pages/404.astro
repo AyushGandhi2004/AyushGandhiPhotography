@@ -1,0 +1,47 @@
+---
+import Base from '../layouts/Base.astro';
+---
+
+<Base title="Out of focus" description="This page could not be found.">
+  <section class="wrap nf">
+    <div class="frame">
+      <div class="brackets"><i></i><i></i><i></i><i></i></div>
+      <span class="mono hunt">AF · NO SUBJECT</span>
+      <h1>404</h1>
+    </div>
+    <p class="lede">Nothing to focus on here. The page may have moved, or the link has a typo.</p>
+    <a class="pill pill-solid" href="/">Back to home</a>
+  </section>
+</Base>
+
+<style>
+  .nf {
+    min-height: 62vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+    text-align: center;
+    padding-block: 64px;
+  }
+  .frame {
+    position: relative;
+    padding: 40px 64px;
+  }
+  .frame .brackets {
+    inset: 0;
+    --b: var(--muted);
+  }
+  .hunt {
+    position: absolute;
+    left: 0;
+    top: -24px;
+    font-size: 11px;
+    color: var(--muted);
+  }
+  h1 {
+    font-size: clamp(96px, 16vw, 200px);
+    filter: blur(1.5px);
+  }
+</style>

@@ -1,0 +1,133 @@
+---
+/** Stand-alone page for one photo: what search engines index and what shared links open. */
+import '../styles/viewer.css';
+import Img from './Img.astro';
+import { formatDate } from '../lib/format';
+import { ratio } from '../lib/image';
+import type { Photo } from '../lib/types';
+
+interface Props {
+  photo: Photo;
+  list: Photo[];
+  label: string;
+  backHref: string;
+  backLabel: string;
+}
+
+const { photo, list, label, backHref, backLabel } = Astro.props;
+const i = list.findIndex((p) => p.key === photo.key);
+const prev = list[(i - 1 + list.length) % list.length];
+const next = list[(i + 1) % list.length];
+const r = ratio(photo.image);
+const title = photo.title ?? photo.species[0]?.name ?? photo.albumTitle ?? 'Photograph';
+const meta = [photo.location, formatDate(photo.takenAt)].filter(Boolean).join(' · ');
+const exif: [string, string | undefined][] = [
+  ['Shutter', photo.exif.shutter],
+  ['Aperture', photo.exif.aperture],
+  ['ISO', photo.exif.iso],
+  ['Focal', photo.exif.focal],
+  ['Body', photo.exif.camera],
+  ['Lens', photo.exif.lens],
+];
+---
+
+<div class="lb protect pv">
+  <div class="lb-top">
+    <span class="mono lb-crumb"><a href={backHref}>{label}</a> · <span class="lb-count">{String(i + 1).padStart(2, '0')} / {list.length}</span></span>
+    <span class="lb-actions">
+      <button class="lb-btn" type="button" data-pv-info aria-pressed="true"><span class="key mono">i</span>Info</button>
+      <a class="lb-btn" href={backHref} aria-label={`Close, back to ${backLabel}`} data-pv-close>✕</a>
+    </span>
+  </div>
+
+  <div class="lb-stage">
+    <div class="lb-frame" style={`aspect-ratio:${r};--r:${r}`}>
+      <Img img={photo.image} alt={photo.alt} eager fit="contain" sizes="100vw" />
+      <div class="lb-hud" data-pv-hud>
+        <div class="brackets"><i></i><i></i><i></i><i></i></div>
+        <div class="lb-panel">
+          <div class="lb-story">
+            <h1 class="lb-title">{title}</h1>
+            {photo.caption && <p class="lb-cap">{photo.caption}</p>}
+            {photo.species[0]?.scientific && <p class="lb-meta"><em>{photo.species[0].scientific}</em></p>}
+            {meta && <span class="mono lb-meta">{meta}</span>}
+          </div>
+          <dl class="lb-exif mono">
+            {
+              exif
+                .filter(([, v]) => v)
+                .map(([k, v]) => (
+                  <div>
+                    <dt>{k}</dt>
+                    <dd>{v}</dd>
+                  </div>
+                ))
+            }
+          </dl>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {
+    list.length > 1 && (
+      <>
+        <a class="lb-btn lb-nav lb-prev" href={prev.href} aria-label="Previous photo" data-pv-prev>
+          ←
+        </a>
+        <a class="lb-btn lb-nav lb-next" href={next.href} aria-label="Next photo" data-pv-next>
+          →
+        </a>
+      </>
+    )
+  }
+  <p class="lb-hint mono">← → browse · i info · esc close</p>
+</div>
+
+<script>
+  const hud = document.querySelector<HTMLElement>('[data-pv-hud]');
+  const btn = document.querySelector<HTMLButtonElement>('[data-pv-info]');
+  const toggle = () => {
+    if (!hud || !btn) return;
+    hud.hidden = !hud.hidden;
+    btn.setAttribute('aria-pressed', String(!hud.hidden));
+  };
+  btn?.addEventListener('click', toggle);
+  const go = (sel: string) => document.querySelector<HTMLAnchorElement>(sel)?.click();
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight') go('[data-pv-next]');
+    else if (e.key === 'ArrowLeft') go('[data-pv-prev]');
+    else if (e.key === 'Escape') go('[data-pv-close]');
+    else if (e.key.toLowerCase() === 'i') toggle();
+  });
+  let x0: number | null = null;
+  document.addEventListener('touchstart', (e) => (x0 = e.touches[0].clientX), { passive: true });
+  document.addEventListener('touchend', (e) => {
+    if (x0 === null) return;
+    const dx = e.changedTouches[0].clientX - x0;
+    if (Math.abs(dx) > 50) go(dx < 0 ? '[data-pv-next]' : '[data-pv-prev]');
+    x0 = null;
+  });
+</script>
+
+<style>
+  .pv {
+    position: fixed;
+  }
+  .pv .lb-crumb a {
+    color: #9aa493;
+  }
+  .pv .lb-crumb a:hover {
+    color: #e7ecdf;
+  }
+  .pv .lb-frame :global(.img) {
+    background-color: transparent;
+    border-radius: 4px;
+  }
+  .pv h1.lb-title {
+    line-height: 1.1;
+  }
+  .pv .lb-btn {
+    text-decoration: none;
+  }
+</style>

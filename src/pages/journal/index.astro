@@ -1,0 +1,203 @@
+---
+import Base from '../../layouts/Base.astro';
+import Img from '../../components/Img.astro';
+import { categoryTitle, getContent } from '../../lib/content';
+import { formatDate } from '../../lib/format';
+import { breadcrumb } from '../../lib/seo';
+
+const content = await getContent();
+const [lead, ...rest] = content.stories;
+const used = new Set(content.stories.map((s) => s.category).filter(Boolean));
+const filters = content.categories.filter((c) => used.has(c.slug));
+const ld = breadcrumb(
+  [
+    { name: 'Home', path: '/' },
+    { name: 'Journal', path: '/journal/' },
+  ],
+  Astro.site,
+);
+---
+
+<Base title="Journal" description="Field notes and stories behind the photographs — trips, shows and long nights." nav="journal" jsonLd={ld}>
+  <section class="wrap head">
+    <div>
+      <p class="label">Field notes</p>
+      <h1 class="page-title">Journal</h1>
+    </div>
+    {
+      filters.length > 1 && (
+        <div class="filters" role="group" aria-label="Filter stories" data-jfilters>
+          <button class="chip" type="button" aria-pressed="true" data-filter="">
+            All
+          </button>
+          {filters.map((c) => (
+            <button class="chip" type="button" aria-pressed="false" data-filter={c.slug}>
+              {c.title}
+            </button>
+          ))}
+        </div>
+      )
+    }
+  </section>
+
+  {
+    !lead && (
+      <section class="wrap section">
+        <p class="lede">The first story is on its way.</p>
+      </section>
+    )
+  }
+
+  {
+    lead && (
+      <section class="wrap" data-story={lead.category ?? ''}>
+        <a class="lead card grid-2" href={lead.href}>
+          <span class="lead-img">
+            <Img img={lead.cover} alt={lead.coverAlt ?? lead.title} eager sizes="(max-width: 860px) 100vw, 60vw" />
+          </span>
+          <span class="lead-text">
+            <span class="label label-accent">Latest story{lead.category && ` · ${categoryTitle(content, lead.category)}`}</span>
+            <span class="lead-title">{lead.title}</span>
+            {lead.standfirst && <span class="lede">{lead.standfirst}</span>}
+            <span class="mono meta">{[formatDate(lead.publishedAt), `${lead.readMins} min read`].filter(Boolean).join(' · ')}</span>
+          </span>
+        </a>
+      </section>
+    )
+  }
+
+  {
+    rest.length > 0 && (
+      <section class="wrap section list" aria-label="All stories">
+        {rest.map((s) => (
+          <a class="row" href={s.href} data-story={s.category ?? ''}>
+            <span class="row-img">
+              <Img img={s.cover} alt={s.coverAlt ?? s.title} sizes="(max-width: 760px) 100vw, 240px" />
+            </span>
+            <span class="row-text">
+              {s.category && <span class="label label-accent">{categoryTitle(content, s.category)}</span>}
+              <span class="row-title">{s.title}</span>
+              {s.standfirst && <span class="row-sub">{s.standfirst}</span>}
+            </span>
+            <span class="mono meta right">
+              {formatDate(s.publishedAt)}
+              <br />
+              {s.readMins} min
+            </span>
+          </a>
+        ))}
+      </section>
+    )
+  }
+</Base>
+
+<script>
+  const group = document.querySelector<HTMLElement>('[data-jfilters]');
+  group?.addEventListener('click', (e) => {
+    const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-filter]');
+    if (!btn) return;
+    const id = btn.dataset.filter ?? '';
+    group.querySelectorAll('[data-filter]').forEach((b) => b.setAttribute('aria-pressed', String(b === btn)));
+    document.querySelectorAll<HTMLElement>('[data-story]').forEach((el) => {
+      el.hidden = Boolean(id) && el.dataset.story !== id;
+    });
+  });
+</script>
+
+<style>
+  .head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 24px;
+    padding-top: clamp(32px, 5vw, 56px);
+    padding-bottom: 40px;
+  }
+  .head .label {
+    margin-bottom: 12px;
+  }
+  .filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .lead {
+    padding: clamp(14px, 1.6vw, 20px);
+    border-radius: 28px;
+    color: var(--text);
+  }
+  .lead:hover {
+    border-color: var(--accent-ink);
+    color: var(--text);
+  }
+  .lead-img {
+    display: block;
+    aspect-ratio: 16 / 10;
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .lead-text {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding-right: 12px;
+  }
+  .lead-title {
+    font: 800 clamp(32px, 3.6vw, 48px) / 1 var(--display);
+    letter-spacing: -0.04em;
+  }
+  .meta {
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .right {
+    text-align: right;
+  }
+  .row {
+    display: grid;
+    grid-template-columns: 240px 1fr auto;
+    gap: 28px;
+    align-items: center;
+    padding: 18px 0;
+    border-top: 1px solid var(--line);
+    color: var(--text);
+  }
+  .row:hover {
+    color: var(--text);
+  }
+  .row:hover .row-title {
+    color: var(--accent-ink);
+  }
+  .row-img {
+    display: block;
+    aspect-ratio: 3 / 2;
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .row-text {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .row-title {
+    font: 700 clamp(22px, 2.2vw, 28px) var(--display);
+    letter-spacing: -0.025em;
+    transition: color 0.2s;
+  }
+  .row-sub {
+    color: var(--text-soft);
+    font-size: 15px;
+  }
+  [hidden] {
+    display: none !important;
+  }
+  @media (max-width: 760px) {
+    .row {
+      grid-template-columns: 1fr;
+    }
+    .right {
+      text-align: left;
+    }
+  }
+</style>

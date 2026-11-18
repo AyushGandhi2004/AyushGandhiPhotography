@@ -1,0 +1,334 @@
+---
+import Base from '../../layouts/Base.astro';
+import Img from '../../components/Img.astro';
+import Gallery from '../../components/Gallery.astro';
+import Lightbox from '../../components/Lightbox.astro';
+import VideoFacade from '../../components/VideoFacade.astro';
+import { albumsOf, filmsOf, getContent, photosOf } from '../../lib/content';
+import { formatMonth } from '../../lib/format';
+import { ogUrl } from '../../lib/image';
+import { breadcrumb, gallery, video } from '../../lib/seo';
+import type { Category } from '../../lib/types';
+
+export async function getStaticPaths() {
+  const content = await getContent();
+  return content.categories.map((category) => ({ params: { category: category.slug }, props: { category } }));
+}
+
+interface Props {
+  category: Category;
+}
+
+const { category } = Astro.props;
+const content = await getContent();
+const site = Astro.site;
+const albums = albumsOf(content, category.slug);
+const photos = photosOf(content, category);
+const films = filmsOf(content, category.slug);
+const featured = films.find((f) => f.featured) ?? films[0];
+const rest = films.filter((f) => f !== featured);
+const species = new Set(photos.flatMap((p) => p.species.map((s) => s.id))).size;
+
+const counters =
+  category.kind === 'films'
+    ? [{ k: 'Films', v: films.length }]
+    : [
+        { k: albums.length === 1 ? 'Album' : 'Albums', v: albums.length },
+        { k: 'Species', v: species },
+        { k: 'Frames', v: photos.length },
+      ].filter((x) => x.v > 0);
+
+const crumbs = breadcrumb(
+  [
+    { name: 'Home', path: '/' },
+    { name: category.title, path: category.href },
+  ],
+  site,
+);
+const ld =
+  category.kind === 'films'
+    ? [crumbs, ...films.map((f) => video(f, site))]
+    : [crumbs, gallery(category.title, category.href, photos, site, category.intro)];
+const shareImg = ogUrl(category.cover ?? photos[0]?.image ?? featured?.poster);
+---
+
+<Base
+  title={category.seoTitle ?? (category.kind === 'films' ? `${category.title} — films` : `${category.title} photography`)}
+  description={category.seoDescription ?? category.intro ?? `${category.title} by Ayush Gandhi.`}
+  image={shareImg}
+  mode={category.code}
+  jsonLd={ld}
+>
+  <section class="wrap head">
+    <div class="head-text">
+      <nav aria-label="Breadcrumb" class="breadcrumb"><a href="/">Home</a> / <span aria-current="page">{category.title}</span></nav>
+      <h1 class="page-title">{category.title}</h1>
+      {category.intro && <p class="lede">{category.intro}</p>}
+    </div>
+    {
+      counters.length > 0 && (
+        <dl class="counters">
+          {counters.map((c) => (
+            <div>
+              <dt class="label">{c.k}</dt>
+              <dd>{c.v}</dd>
+            </div>
+          ))}
+        </dl>
+      )
+    }
+  </section>
+
+  {
+    category.kind === 'photos' && albums.length > 0 && (
+      <section class="wrap section albums-sec" aria-labelledby="albums-title">
+        <div class="section-head">
+          <h2 id="albums-title" class="section-title">
+            <span class="num">01</span>
+            {category.main ? 'Trips' : 'Albums'}
+          </h2>
+          <span class="label">Newest first</span>
+        </div>
+        <div class="albums">
+          {albums.map((a, i) => (
+            <a class="album card" href={a.href}>
+              <span class="album-img protect">
+                <Img img={a.cover?.image} alt={a.cover?.alt ?? a.title} sizes="(max-width: 640px) 100vw, 33vw" eager={i < 3} />
+                <span class="count mono">{a.photos.length} frames</span>
+              </span>
+              <span class="album-text">
+                <span class="album-title">{a.title}</span>
+                <span class="mono album-meta">{[a.location, formatMonth(a.dateStart)].filter(Boolean).join(' · ')}</span>
+              </span>
+            </a>
+          ))}
+        </div>
+      </section>
+    )
+  }
+
+  {
+    category.kind === 'photos' && photos.length > 0 && (
+      <section class="wrap section" aria-labelledby="frames-title">
+        <div class="section-head">
+          <h2 id="frames-title" class="section-title">
+            <span class="num">{albums.length > 0 ? '02' : '01'}</span>All {category.title.toLowerCase()} frames
+          </h2>
+          <span class="label">Tap a photo · i for details</span>
+        </div>
+        <Gallery photos={photos} label={category.title} />
+        <Lightbox />
+      </section>
+    )
+  }
+
+  {
+    category.kind === 'photos' && photos.length === 0 && (
+      <section class="wrap section">
+        <p class="lede">New work is on its way.</p>
+      </section>
+    )
+  }
+
+  {
+    category.kind === 'films' && featured && (
+      <section class="wrap feature grid-2" aria-labelledby="ft-title">
+        <VideoFacade film={featured} large eager />
+        <div class="ft-text">
+          <p class="label label-accent">Featured film</p>
+          <h2 id="ft-title" class="ft-title">
+            <a href={featured.href}>{featured.title}</a>
+          </h2>
+          {featured.description && <p class="lede">{featured.description}</p>}
+          <dl class="kv">
+            {featured.year && (
+              <div>
+                <dt>Year</dt>
+                <dd>{featured.year}</dd>
+              </div>
+            )}
+            {featured.length && (
+              <div>
+                <dt>Length</dt>
+                <dd>{featured.length}</dd>
+              </div>
+            )}
+            {featured.role && (
+              <div>
+                <dt>Role</dt>
+                <dd>{featured.role}</dd>
+              </div>
+            )}
+            {featured.format && (
+              <div>
+                <dt>Format</dt>
+                <dd>{featured.format}</dd>
+              </div>
+            )}
+          </dl>
+          <p class="mono small">The player loads only after you press play.</p>
+        </div>
+      </section>
+    )
+  }
+
+  {
+    category.kind === 'films' && rest.length > 0 && (
+      <section class="wrap section" aria-labelledby="films-title">
+        <div class="section-head">
+          <h2 id="films-title" class="section-title">
+            <span class="num">02</span>All films
+          </h2>
+        </div>
+        <div class="films">
+          {rest.map((f) => (
+            <article class="film">
+              <VideoFacade film={f} />
+              <h3 class="film-title">
+                <a href={f.href}>{f.title}</a>
+              </h3>
+              <p class="mono film-meta">{[f.year, f.role].filter(Boolean).join(' · ')}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+    )
+  }
+
+  {
+    category.kind === 'films' && films.length === 0 && (
+      <section class="wrap section">
+        <p class="lede">Films are on their way.</p>
+      </section>
+    )
+  }
+</Base>
+
+<style>
+  .head {
+    display: grid;
+    grid-template-columns: 1.3fr 1fr;
+    gap: 48px;
+    align-items: end;
+    padding-top: clamp(32px, 5vw, 56px);
+    padding-bottom: clamp(24px, 4vw, 48px);
+  }
+  .head-text {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+  .counters {
+    margin: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+    gap: 10px;
+  }
+  .counters > div {
+    padding: 18px;
+    border-radius: 16px;
+    border: 1px solid var(--line);
+  }
+  .counters dd {
+    margin: 8px 0 0;
+    font: 800 44px/1 var(--display);
+    letter-spacing: -0.04em;
+    color: var(--accent-ink);
+  }
+  .albums-sec {
+    padding-top: 24px;
+  }
+  .albums {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr));
+    gap: 16px;
+  }
+  .album {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    color: var(--text);
+    transition: transform 0.4s var(--ease), border-color 0.3s;
+  }
+  .album:hover {
+    transform: translateY(-6px);
+    border-color: var(--accent-ink);
+    color: var(--text);
+  }
+  .album-img {
+    position: relative;
+    display: block;
+    aspect-ratio: 3 / 2;
+  }
+  .count {
+    position: absolute;
+    left: 12px;
+    top: 12px;
+    padding: 5px 10px;
+    border-radius: 999px;
+    background: rgb(20 24 19 / 0.75);
+    color: #e7ecdf;
+    font-size: 11px;
+  }
+  .album-text {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 16px 18px;
+  }
+  .album-title {
+    font: 700 20px var(--display);
+    letter-spacing: -0.02em;
+  }
+  .album-meta {
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .feature {
+    padding-bottom: 32px;
+  }
+  .ft-text {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .ft-title {
+    font-size: clamp(32px, 3.5vw, 44px);
+    line-height: 1;
+  }
+  .ft-title a {
+    color: var(--text);
+  }
+  .small {
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .films {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(360px, 100%), 1fr));
+    gap: 24px 20px;
+  }
+  .film {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .film-title {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+  }
+  .film-title a {
+    color: var(--text);
+  }
+  .film-meta {
+    font-size: 12px;
+    color: var(--muted);
+  }
+  @media (max-width: 860px) {
+    .head {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

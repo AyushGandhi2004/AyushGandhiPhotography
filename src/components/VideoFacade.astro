@@ -1,0 +1,125 @@
+---
+/** Poster + play button; the YouTube/Vimeo player only loads after a click. */
+import Img from './Img.astro';
+import type { Film } from '../lib/types';
+
+interface Props {
+  film: Film;
+  large?: boolean;
+  eager?: boolean;
+}
+
+const { film, large = false, eager = false } = Astro.props;
+const embed =
+  film.provider === 'youtube' && film.videoId
+    ? `https://www.youtube-nocookie.com/embed/${film.videoId}?autoplay=1&rel=0`
+    : film.provider === 'vimeo' && film.videoId
+      ? `https://player.vimeo.com/video/${film.videoId}?autoplay=1&dnt=1`
+      : undefined;
+const ytThumb = film.provider === 'youtube' && film.videoId ? `https://i.ytimg.com/vi/${film.videoId}/hqdefault.jpg` : undefined;
+const sizes = large ? '(max-width: 860px) 100vw, 62vw' : '(max-width: 640px) 100vw, 33vw';
+const Tag = embed ? 'button' : film.url ? 'a' : 'div';
+const attrs: Record<string, string> = embed
+  ? { type: 'button', 'data-embed': embed, 'aria-label': `Play ${film.title}` }
+  : film.url
+    ? { href: film.url, target: '_blank', rel: 'noopener', 'aria-label': `Watch ${film.title} (opens in a new tab)` }
+    : { role: 'img', 'aria-label': film.title };
+---
+
+<Tag class:list={['vf', { large }]} {...(attrs as Record<string, never>)}>
+  {
+    film.poster ? (
+      <Img img={film.poster} alt="" sizes={sizes} eager={eager} />
+    ) : ytThumb ? (
+      <img class="yt" src={ytThumb} alt="" loading={eager ? 'eager' : 'lazy'} width="480" height="360" />
+    ) : (
+      <span class="blank" />
+    )
+  }
+  <span class="play" aria-hidden="true">
+    <svg viewBox="0 0 24 24" width="40%" height="40%"><path d="M8 5v14l11-7z" fill="currentColor"></path></svg>
+  </span>
+  {film.length && <span class="len mono">{film.length}</span>}
+</Tag>
+
+<script>
+  document.querySelectorAll<HTMLButtonElement>('button[data-embed]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const iframe = document.createElement('iframe');
+      iframe.src = btn.dataset.embed!;
+      iframe.title = btn.getAttribute('aria-label')?.replace(/^Play /, '') ?? 'Video';
+      iframe.allow = 'autoplay; fullscreen; picture-in-picture; encrypted-media';
+      iframe.allowFullscreen = true;
+      iframe.className = 'vf-frame';
+      btn.replaceWith(iframe);
+    });
+  });
+</script>
+
+<style>
+  .vf {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius);
+    overflow: hidden;
+    background: #0a0c09;
+    color: #c9dbbe;
+    cursor: pointer;
+  }
+  .vf.large {
+    border-radius: var(--radius-lg);
+  }
+  .vf :global(.img),
+  .yt,
+  .blank {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .blank {
+    background: linear-gradient(135deg, #1f4a52 0%, #13262b 50%, #a2643a 130%);
+  }
+  .play {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    border: 2px solid #c9dbbe;
+    background: rgb(20 24 19 / 0.7);
+    transition: transform 0.3s var(--ease);
+  }
+  .large .play {
+    width: 88px;
+    height: 88px;
+  }
+  .vf:hover .play {
+    transform: scale(1.08);
+  }
+  .len {
+    position: absolute;
+    right: 12px;
+    bottom: 12px;
+    padding: 4px 9px;
+    border-radius: 999px;
+    background: rgb(20 24 19 / 0.75);
+    color: #e7ecdf;
+    font-size: 11px;
+  }
+  :global(.vf-frame) {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    border: 0;
+    border-radius: var(--radius-lg);
+  }
+</style>

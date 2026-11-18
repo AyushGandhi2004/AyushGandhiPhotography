@@ -1,0 +1,370 @@
+/*
+ * Field HUD — follows the system theme (dark if it can't tell). The header toggle
+ * sets data-theme="light|dark" on <html>, which overrides the system and is remembered.
+ */
+:root {
+  color-scheme: dark;
+  --bg: #141813;
+  --surface: #1c211b;
+  --raised: #232922;
+  --line: #2a3127;
+  --line-strong: #3a4436;
+  --text: #e7ecdf;
+  --text-soft: #b9c2b1;
+  --muted: #9aa493;
+  --accent: #c9dbbe;
+  --accent-ink: #c9dbbe;
+  --on-accent: #141813;
+  --sand: #f3e6cf;
+  --photo-bg: #0a0c09;
+  --knurl-a: #2e362c;
+  --knurl-b: #1a1f19;
+  --knob-hi: #323b30;
+  --knob-lo: #171c16;
+
+  --gutter: clamp(16px, 4vw, 64px);
+  --radius: 18px;
+  --radius-lg: 24px;
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --display: var(--font-display), 'Inter Tight', system-ui, sans-serif;
+  --sans: var(--font-text), Inter, system-ui, sans-serif;
+  --mono: var(--font-mono), 'JetBrains Mono', ui-monospace, monospace;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme='dark']) {
+    color-scheme: light;
+    --bg: #eef1e8;
+    --surface: #e3e8db;
+    --raised: #f7f8f3;
+    --line: #cdd5c3;
+    --line-strong: #b9c2ae;
+    --text: #1e211c;
+    --text-soft: #3d4237;
+    --muted: #5a6152;
+    --accent: #c9dbbe;
+    --accent-ink: #3f5a33;
+    --on-accent: #1e211c;
+    --knurl-a: #d5dccb;
+    --knurl-b: #e9ede2;
+    --knob-hi: #ffffff;
+    --knob-lo: #e3e8db;
+  }
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+  --bg: #eef1e8;
+  --surface: #e3e8db;
+  --raised: #f7f8f3;
+  --line: #cdd5c3;
+  --line-strong: #b9c2ae;
+  --text: #1e211c;
+  --text-soft: #3d4237;
+  --muted: #5a6152;
+  --accent: #c9dbbe;
+  --accent-ink: #3f5a33;
+  --on-accent: #1e211c;
+  --knurl-a: #d5dccb;
+  --knurl-b: #e9ede2;
+  --knob-hi: #ffffff;
+  --knob-lo: #e3e8db;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 400 16px/1.6 var(--sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+img,
+svg,
+video,
+iframe {
+  display: block;
+  max-width: 100%;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+a {
+  color: var(--accent-ink);
+  text-decoration: none;
+}
+a:hover {
+  color: var(--text);
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  font-family: var(--display);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 0.95;
+  text-wrap: balance;
+}
+
+p {
+  margin: 0;
+  text-wrap: pretty;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent-ink);
+  outline-offset: 3px;
+}
+
+::selection {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+/* ---------- utilities ---------- */
+
+.wrap {
+  padding-inline: var(--gutter);
+}
+
+.mono {
+  font-family: var(--mono);
+}
+
+.label {
+  font: 500 12px/1.4 var(--mono);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.label-accent {
+  color: var(--accent-ink);
+}
+
+.lede {
+  font-size: clamp(17px, 1.4vw, 19px);
+  line-height: 1.65;
+  color: var(--text-soft);
+  max-width: 62ch;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.skip-link {
+  position: fixed;
+  left: 16px;
+  top: -60px;
+  z-index: 100;
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-weight: 500;
+}
+.skip-link:focus {
+  top: 16px;
+}
+
+.section {
+  padding-block: clamp(56px, 8vw, 112px);
+}
+
+.section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 28px;
+}
+
+.section-title {
+  font-size: clamp(32px, 4vw, 52px);
+  font-weight: 700;
+}
+
+.section-title .num {
+  font: 400 12px var(--mono);
+  letter-spacing: 0;
+  color: var(--muted);
+  vertical-align: middle;
+  margin-right: 14px;
+}
+
+.page-title {
+  font-size: clamp(56px, 9vw, 148px);
+  line-height: 0.85;
+  letter-spacing: -0.055em;
+}
+
+.breadcrumb {
+  font: 400 12px var(--mono);
+  color: var(--muted);
+}
+.breadcrumb a {
+  color: var(--muted);
+}
+.breadcrumb a:hover {
+  color: var(--text);
+}
+.breadcrumb [aria-current] {
+  color: var(--text);
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 20px;
+  border-radius: 999px;
+  border: 1px solid var(--line-strong);
+  color: var(--text);
+  font: 500 14px var(--sans);
+  background: transparent;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+.pill:hover {
+  border-color: var(--accent-ink);
+  color: var(--text);
+}
+.pill-solid {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+}
+.pill-solid:hover {
+  color: var(--on-accent);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid var(--line-strong);
+  font: 400 12px var(--mono);
+  color: var(--text);
+  background: transparent;
+  cursor: pointer;
+}
+.chip[aria-pressed='true'],
+.chip.is-active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+}
+
+.card {
+  border-radius: var(--radius);
+  background: var(--surface);
+  border: 1px solid var(--line);
+}
+
+.kv {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  font: 400 13px var(--mono);
+}
+.kv > div {
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--surface);
+}
+.kv dt {
+  font-size: 10px;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+.kv dd {
+  margin: 4px 0 0;
+  color: var(--text);
+}
+.kv .wide {
+  grid-column: 1 / -1;
+}
+
+/* Focus brackets: four corners. Put four <i> inside an element with .brackets. */
+.brackets {
+  position: absolute;
+  inset: 18px;
+  pointer-events: none;
+  --b: var(--accent);
+  --s: 26px;
+}
+.brackets > i {
+  position: absolute;
+  width: var(--s);
+  height: var(--s);
+  border: 0 solid var(--b);
+}
+.brackets > i:nth-child(1) { left: 0; top: 0; border-top-width: 2px; border-left-width: 2px; border-top-left-radius: 8px; }
+.brackets > i:nth-child(2) { right: 0; top: 0; border-top-width: 2px; border-right-width: 2px; border-top-right-radius: 8px; }
+.brackets > i:nth-child(3) { left: 0; bottom: 0; border-bottom-width: 2px; border-left-width: 2px; border-bottom-left-radius: 8px; }
+.brackets > i:nth-child(4) { right: 0; bottom: 0; border-bottom-width: 2px; border-right-width: 2px; border-bottom-right-radius: 8px; }
+
+/* Photos never get dragged or right-click-saved casually. */
+.protect img {
+  -webkit-user-drag: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.grid-2 {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr;
+  gap: clamp(28px, 4vw, 56px);
+  align-items: center;
+}
+
+@media (max-width: 860px) {
+  .grid-2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

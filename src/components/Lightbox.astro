@@ -1,0 +1,220 @@
+---
+import '../styles/viewer.css';
+/**
+ * Full-screen photo view with a viewfinder HUD (Info / "i"). One per page; it picks up
+ * any [data-gallery] on the page. The URL follows the open photo, so links can be shared.
+ */
+---
+
+<div class="lb protect" data-lightbox hidden role="dialog" aria-modal="true" aria-label="Photo viewer">
+  <div class="lb-top">
+    <span class="mono lb-crumb"><span data-lb-label></span> · <span class="lb-count" data-lb-count></span></span>
+    <span class="lb-actions">
+      <button class="lb-btn" type="button" data-lb-info aria-pressed="false"><span class="key mono">i</span>Info</button>
+      <button class="lb-btn" type="button" data-lb-close aria-label="Close">✕</button>
+    </span>
+  </div>
+
+  <div class="lb-stage">
+    <div class="lb-frame" data-lb-frame>
+      <img class="lb-img" data-lb-img alt="" draggable="false" />
+      <div class="lb-demo" data-lb-demo hidden></div>
+      <div class="lb-hud" data-lb-hud hidden>
+        <div class="brackets"><i></i><i></i><i></i><i></i></div>
+        <div class="lb-panel">
+          <div class="lb-story">
+            <strong class="lb-title" data-lb-title></strong>
+            <span class="lb-cap" data-lb-cap></span>
+            <span class="mono lb-meta" data-lb-meta></span>
+          </div>
+          <dl class="lb-exif mono" data-lb-exif></dl>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <button class="lb-btn lb-nav lb-prev" type="button" data-lb-prev aria-label="Previous photo">←</button>
+  <button class="lb-btn lb-nav lb-next" type="button" data-lb-next aria-label="Next photo">→</button>
+  <p class="lb-hint mono">← → browse · i info · esc close</p>
+</div>
+
+<script>
+  interface Item {
+    href: string;
+    src?: string;
+    srcset?: string;
+    w: number;
+    h: number;
+    lqip?: string;
+    tone?: string;
+    alt: string;
+    title?: string;
+    caption?: string;
+    meta?: string;
+    exif: Record<string, string | undefined>;
+  }
+
+  const lb = document.querySelector<HTMLElement>('[data-lightbox]');
+  if (lb) {
+    const $ = <T extends HTMLElement>(s: string) => lb.querySelector<T>(s)!;
+    const img = $<HTMLImageElement>('[data-lb-img]');
+    const demo = $('[data-lb-demo]');
+    const frame = $('[data-lb-frame]');
+    const hud = $('[data-lb-hud]');
+    const infoBtn = $('[data-lb-info]');
+    const EXIF: [string, string][] = [
+      ['shutter', 'Shutter'],
+      ['aperture', 'Aperture'],
+      ['iso', 'ISO'],
+      ['focal', 'Focal'],
+      ['camera', 'Body'],
+      ['lens', 'Lens'],
+    ];
+
+    let items: Item[] = [];
+    let order: number[] = [];
+    let pos = 0;
+    let pushed = false;
+    let lastFocus: HTMLElement | null = null;
+
+    const setHud = (on: boolean) => {
+      hud.hidden = !on;
+      infoBtn.setAttribute('aria-pressed', String(on));
+      try {
+        sessionStorage.setItem('ag-hud', on ? '1' : '0');
+      } catch {}
+    };
+
+    const fit = (it: Item) => {
+      const r = it.w / it.h;
+      frame.style.aspectRatio = String(r);
+      frame.style.setProperty('--r', String(r));
+    };
+
+    const show = () => {
+      const it = items[order[pos]];
+      fit(it);
+      if (it.src) {
+        img.hidden = false;
+        demo.hidden = true;
+        img.style.backgroundImage = it.lqip ? `url(${it.lqip})` : '';
+        img.removeAttribute('srcset');
+        img.src = it.src;
+        if (it.srcset) img.srcset = it.srcset;
+        img.sizes = '100vw';
+        img.alt = it.alt;
+      } else {
+        img.hidden = true;
+        demo.hidden = false;
+        demo.style.background = it.tone ?? '';
+        demo.setAttribute('aria-label', it.alt);
+      }
+      $('[data-lb-title]').textContent = it.title ?? '';
+      $('[data-lb-cap]').textContent = it.caption ?? '';
+      $('[data-lb-meta]').textContent = it.meta ?? '';
+      $('[data-lb-exif]').innerHTML = EXIF.filter(([k]) => it.exif[k])
+        .map(([k, l]) => `<div><dt>${l}</dt><dd>${String(it.exif[k]).replace(/</g, '&lt;')}</dd></div>`)
+        .join('');
+      $('[data-lb-count]').textContent = `${String(pos + 1).padStart(2, '0')} / ${order.length}`;
+      // Warm up the neighbours.
+      [order[pos + 1], order[pos - 1]].forEach((n) => {
+        const nb = n !== undefined ? items[n] : undefined;
+        if (nb?.src) new Image().src = nb.src;
+      });
+    };
+
+    const open = (gallery: HTMLElement, index: number) => {
+      items = JSON.parse(gallery.querySelector('[data-lb-data]')?.textContent || '[]');
+      const visible = [...gallery.querySelectorAll<HTMLElement>('[data-lb]')].filter((a) => !a.hidden).map((a) => Number(a.dataset.lb));
+      order = visible;
+      pos = Math.max(0, order.indexOf(index));
+      $('[data-lb-label]').textContent = gallery.dataset.label ?? '';
+      lastFocus = document.activeElement as HTMLElement;
+      let hudOn = false;
+      try {
+        hudOn = sessionStorage.getItem('ag-hud') === '1';
+      } catch {}
+      setHud(hudOn);
+      show();
+      lb.hidden = false;
+      document.documentElement.style.overflow = 'hidden';
+      history.pushState({ lb: true }, '', items[order[pos]].href);
+      pushed = true;
+      $('[data-lb-close]').focus();
+    };
+
+    const hide = () => {
+      lb.hidden = true;
+      document.documentElement.style.overflow = '';
+      lastFocus?.focus({ preventScroll: true });
+    };
+
+    const close = () => {
+      if (pushed) {
+        pushed = false;
+        history.back();
+      }
+      hide();
+    };
+
+    const go = (d: number) => {
+      if (!order.length) return;
+      pos = (pos + d + order.length) % order.length;
+      show();
+      history.replaceState({ lb: true }, '', items[order[pos]].href);
+    };
+
+    window.addEventListener('popstate', () => {
+      if (!lb.hidden) {
+        pushed = false;
+        hide();
+      }
+    });
+
+    document.addEventListener('click', (e) => {
+      const a = (e.target as HTMLElement).closest<HTMLAnchorElement>('a[data-lb]');
+      if (!a || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      const gallery = a.closest<HTMLElement>('[data-gallery]');
+      if (!gallery) return;
+      e.preventDefault();
+      open(gallery, Number(a.dataset.lb));
+    });
+
+    $('[data-lb-close]').addEventListener('click', close);
+    $('[data-lb-prev]').addEventListener('click', () => go(-1));
+    $('[data-lb-next]').addEventListener('click', () => go(1));
+    infoBtn.addEventListener('click', () => setHud(Boolean(hud.hidden)));
+    lb.addEventListener('click', (e) => {
+      if (e.target === lb || (e.target as HTMLElement).classList.contains('lb-stage')) close();
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (lb.hidden) return;
+      if (e.key === 'Escape') close();
+      else if (e.key === 'ArrowRight') go(1);
+      else if (e.key === 'ArrowLeft') go(-1);
+      else if (e.key.toLowerCase() === 'i') setHud(Boolean(hud.hidden));
+      else if (e.key === 'Tab') {
+        // Keep focus inside the viewer.
+        const f = [...lb.querySelectorAll<HTMLElement>('button')];
+        const i = f.indexOf(document.activeElement as HTMLElement);
+        if (e.shiftKey && i <= 0) {
+          e.preventDefault();
+          f[f.length - 1].focus();
+        } else if (!e.shiftKey && i === f.length - 1) {
+          e.preventDefault();
+          f[0].focus();
+        }
+      }
+    });
+
+    let x0: number | null = null;
+    lb.addEventListener('touchstart', (e) => (x0 = e.touches[0].clientX), { passive: true });
+    lb.addEventListener('touchend', (e) => {
+      if (x0 === null) return;
+      const dx = e.changedTouches[0].clientX - x0;
+      if (Math.abs(dx) > 50) go(dx < 0 ? 1 : -1);
+      x0 = null;
+    });
+  }
+</script>

@@ -1,0 +1,7 @@
+{"_id":"category-wildlife","_type":"category","title":"Wildlife","slug":{"_type":"slug","current":"wildlife"},"code":"WL","order":1,"kind":"photos","main":true}
+{"_id":"category-street","_type":"category","title":"Street","slug":{"_type":"slug","current":"street"},"code":"ST","order":2,"kind":"photos","main":false}
+{"_id":"category-astrophotography","_type":"category","title":"Astrophotography","slug":{"_type":"slug","current":"astrophotography"},"code":"AS","order":3,"kind":"photos","main":false}
+{"_id":"category-concert","_type":"category","title":"Concert","slug":{"_type":"slug","current":"concert"},"code":"CO","order":4,"kind":"photos","main":false}
+{"_id":"category-filmmaking","_type":"category","title":"Filmmaking","slug":{"_type":"slug","current":"filmmaking"},"code":"FM","order":5,"kind":"films","main":false}
+{"_id":"siteSettings","_type":"siteSettings","title":"Ayush Gandhi Photography","tagline":"Patience, then focus.","description":"Wildlife, street, astro and concert photography and short films by Ayush Gandhi."}
+{"_id":"about","_type":"about","gear":[]}

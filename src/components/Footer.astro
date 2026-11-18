@@ -1,0 +1,54 @@
+---
+import { getContent } from '../lib/content';
+
+const content = await getContent();
+const { instagram, youtube } = content.settings;
+const year = new Date().getFullYear();
+---
+
+<footer class="site-footer wrap">
+  <nav aria-label="All categories" class="cats">
+    {content.categories.map((c) => <a href={c.href}>{c.title}</a>)}
+    <a href="/journal/">Journal</a>
+    <a href="/about/">About</a>
+  </nav>
+  <div class="meta mono">
+    {instagram && <a href={instagram} rel="me noopener" target="_blank">INSTAGRAM</a>}
+    {youtube && <a href={youtube} rel="me noopener" target="_blank">YOUTUBE</a>}
+    <span>© {year} AYUSH GANDHI</span>
+    {content.demo && <span class="demo">DEMO CONTENT</span>}
+  </div>
+</footer>
+
+<style>
+  .site-footer {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 24px;
+    padding-block: 40px;
+    border-top: 1px solid var(--line);
+    font-size: 14px;
+  }
+  .cats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 20px;
+  }
+  .meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .meta a {
+    color: var(--muted);
+  }
+  .meta a:hover {
+    color: var(--text);
+  }
+  .demo {
+    color: var(--accent-ink);
+  }
+</style>

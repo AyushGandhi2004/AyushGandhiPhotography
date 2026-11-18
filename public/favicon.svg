@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect width="64" height="64" rx="14" fill="#141813"/>
+  <g fill="none" stroke="#c9dbbe" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M10 22V14q0-4 4-4h8"/>
+    <path d="M42 10h8q4 0 4 4v8"/>
+    <path d="M10 42v8q0 4 4 4h8"/>
+    <path d="M42 54h8q4 0 4-4v-8"/>
+  </g>
+  <text x="32" y="41" text-anchor="middle" font-family="Inter Tight, Inter, Arial, sans-serif" font-weight="800" font-size="24" letter-spacing="-1.5" fill="#e7ecdf">AG</text>
+</svg>

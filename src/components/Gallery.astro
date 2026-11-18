@@ -1,0 +1,110 @@
+---
+/**
+ * Justified rows: equal-height rows, every photo uncropped. Pure CSS (flex-grow by aspect ratio).
+ * Each item links to the photo's own page; with JS the lightbox opens instead.
+ */
+import Img from './Img.astro';
+import { imgUrl, ratio, srcset } from '../lib/image';
+import { formatDate } from '../lib/format';
+import type { Photo } from '../lib/types';
+
+interface Props {
+  photos: Photo[];
+  /** Shown in the lightbox top bar, e.g. "Wildlife / Tadoba 2026". */
+  label: string;
+  rowHeight?: number;
+}
+
+const { photos, label, rowHeight = 260 } = Astro.props;
+
+const data = photos.map((p) => ({
+  href: p.href,
+  src: imgUrl(p.image, 2000),
+  srcset: srcset(p.image),
+  w: p.image.width,
+  h: p.image.height,
+  lqip: p.image.lqip,
+  tone: p.image.tone,
+  alt: p.alt,
+  title: p.title ?? p.species[0]?.name ?? p.albumTitle,
+  caption: p.caption,
+  meta: [p.location, formatDate(p.takenAt)].filter(Boolean).join(' · '),
+  exif: p.exif,
+}));
+---
+
+<div class="gallery protect" data-gallery data-label={label}>
+  {
+    photos.map((p, i) => {
+      const r = ratio(p.image);
+      return (
+        <a
+          class="gi"
+          href={p.href}
+          data-lb={i}
+          data-species={p.species.map((s) => s.id).join(' ')}
+          style={`flex-grow:${Math.round(r * 100)};width:${Math.round(r * rowHeight)}px`}
+        >
+          <i style={`padding-bottom:${(100 / r).toFixed(3)}%`} />
+          <Img img={p.image} alt={p.alt} sizes={`(max-width: 640px) 100vw, ${Math.round(r * rowHeight * 1.4)}px`} />
+          <span class="gi-b" aria-hidden="true" />
+        </a>
+      );
+    })
+  }
+  <script type="application/json" data-lb-data set:html={JSON.stringify(data)} />
+</div>
+
+<style>
+  .gallery {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .gallery::after {
+    content: '';
+    flex-grow: 999999;
+  }
+  .gi {
+    position: relative;
+    display: block;
+    overflow: hidden;
+    border-radius: 10px;
+    background: var(--surface);
+  }
+  .gi > i {
+    display: block;
+  }
+  .gi :global(.img) {
+    position: absolute;
+    inset: 0;
+    transition: transform 0.6s var(--ease), opacity 0.3s;
+  }
+  .gi:hover :global(.img) {
+    transform: scale(1.025);
+  }
+  .gi-b {
+    position: absolute;
+    inset: 10px;
+    pointer-events: none;
+    background:
+      linear-gradient(#c9dbbe, #c9dbbe) left top / 18px 2px no-repeat,
+      linear-gradient(#c9dbbe, #c9dbbe) left top / 2px 18px no-repeat,
+      linear-gradient(#c9dbbe, #c9dbbe) right bottom / 18px 2px no-repeat,
+      linear-gradient(#c9dbbe, #c9dbbe) right bottom / 2px 18px no-repeat;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .gi:hover .gi-b,
+  .gi:focus-visible .gi-b {
+    opacity: 1;
+  }
+  .gi[hidden] {
+    display: none;
+  }
+  @media (max-width: 520px) {
+    .gallery {
+      gap: 6px;
+    }
+  }
+</style>

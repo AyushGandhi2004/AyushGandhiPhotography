@@ -1,0 +1,79 @@
+---
+import Logo from './Logo.astro';
+import ModeDial from './ModeDial.astro';
+import ThemeToggle from './ThemeToggle.astro';
+import { dialModes, getContent } from '../lib/content';
+
+interface Props {
+  mode: string;
+  nav?: 'journal' | 'about';
+}
+
+const { mode, nav } = Astro.props;
+const content = await getContent();
+---
+
+<header class="site-header wrap">
+  <a class="brand" href="/" aria-label="Ayush Gandhi Photography, home">
+    <Logo />
+    <span class="brand-name">Ayush Gandhi</span>
+  </a>
+  <div class="right">
+    <nav class="links" aria-label="Main">
+      <a href="/journal/" aria-current={nav === 'journal' ? 'page' : undefined}>Journal</a>
+      <a href="/about/" aria-current={nav === 'about' ? 'page' : undefined}>About</a>
+    </nav>
+    <ThemeToggle />
+    <ModeDial modes={dialModes(content)} current={mode} />
+  </div>
+</header>
+
+<style>
+  .site-header {
+    position: relative;
+    z-index: 40;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    padding-block: 16px;
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    color: var(--text);
+  }
+  .brand-name {
+    font: 500 16px var(--sans);
+  }
+  .right {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+  }
+  .links {
+    display: flex;
+    gap: 22px;
+    font-size: 14px;
+  }
+  .links a {
+    color: var(--text-soft);
+    padding-block: 4px;
+  }
+  .links a:hover,
+  .links a[aria-current] {
+    color: var(--text);
+  }
+  .links a[aria-current] {
+    border-bottom: 2px solid var(--accent);
+  }
+  @media (max-width: 520px) {
+    .brand-name {
+      display: none;
+    }
+    .right {
+      gap: 16px;
+    }
+  }
+</style>

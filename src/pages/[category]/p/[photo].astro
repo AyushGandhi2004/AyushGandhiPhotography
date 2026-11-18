@@ -1,0 +1,40 @@
+---
+/** Photos placed directly in a category (not in any album). */
+import Base from '../../../layouts/Base.astro';
+import PhotoView from '../../../components/PhotoView.astro';
+import { getContent } from '../../../lib/content';
+import { ogUrl } from '../../../lib/image';
+import { breadcrumb, imageObject } from '../../../lib/seo';
+import type { Category, Photo } from '../../../lib/types';
+
+export async function getStaticPaths() {
+  const content = await getContent();
+  return content.categories
+    .filter((c) => c.kind === 'photos')
+    .flatMap((category) => category.loose.map((photo) => ({ params: { category: category.slug, photo: photo.slug }, props: { category, photo } })));
+}
+
+interface Props {
+  category: Category;
+  photo: Photo;
+}
+
+const { category, photo } = Astro.props;
+const site = Astro.site;
+const name = photo.title ?? photo.species[0]?.name ?? category.title;
+const ld = [
+  { '@context': 'https://schema.org', ...imageObject(photo, site) },
+  breadcrumb(
+    [
+      { name: 'Home', path: '/' },
+      { name: category.title, path: category.href },
+      { name, path: photo.href },
+    ],
+    site,
+  ),
+];
+---
+
+<Base title={`${name} · ${category.title}`} description={photo.caption ?? photo.alt} image={ogUrl(photo.image)} mode={category.code} jsonLd={ld} bare>
+  <PhotoView photo={photo} list={category.loose} label={category.title} backHref={category.href} backLabel={category.title} />
+</Base>

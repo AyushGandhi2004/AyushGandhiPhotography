@@ -1,0 +1,47 @@
+---
+interface Props {
+  size?: 'nav' | 'large';
+}
+const { size = 'nav' } = Astro.props;
+---
+
+<span class:list={['ag', size]} aria-hidden="true">AG<i></i><i></i><i></i><i></i></span>
+
+<style>
+  .ag {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    font-family: var(--display);
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    color: var(--text);
+    --c: 9px;
+    --w: 2px;
+  }
+  .nav {
+    width: 44px;
+    height: 36px;
+    font-size: 16px;
+  }
+  .large {
+    width: 220px;
+    height: 170px;
+    font-size: 104px;
+    letter-spacing: -0.06em;
+    --c: 36px;
+    --w: 4px;
+  }
+  i {
+    position: absolute;
+    width: var(--c);
+    height: var(--c);
+    border: 0 solid var(--accent-ink);
+  }
+  i:nth-of-type(1) { left: 0; top: 0; border-top-width: var(--w); border-left-width: var(--w); border-top-left-radius: 3px; }
+  i:nth-of-type(2) { right: 0; top: 0; border-top-width: var(--w); border-right-width: var(--w); border-top-right-radius: 3px; }
+  i:nth-of-type(3) { left: 0; bottom: 0; border-bottom-width: var(--w); border-left-width: var(--w); border-bottom-left-radius: 3px; }
+  i:nth-of-type(4) { right: 0; bottom: 0; border-bottom-width: var(--w); border-right-width: var(--w); border-bottom-right-radius: 3px; }
+</style>

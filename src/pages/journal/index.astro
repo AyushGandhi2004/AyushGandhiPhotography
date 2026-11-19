@@ -156,7 +156,7 @@ const ld = breadcrumb(
   }
   .row {
     display: grid;
-    grid-template-columns: 240px 1fr auto;
+    grid-template-columns: 240px minmax(0, 1fr) auto;
     gap: 28px;
     align-items: center;
     padding: 18px 0;
@@ -194,7 +194,7 @@ const ld = breadcrumb(
   }
   @media (max-width: 760px) {
     .row {
-      grid-template-columns: 1fr;
+      grid-template-columns: minmax(0, 1fr);
     }
     .right {
       text-align: left;

@@ -47,7 +47,7 @@ const line2 = rest.join(', ');
                 {e.lens && <span class="lens">{e.lens}</span>}
               </span>
               <span class="where">
-                {meta}
+                {meta && <span class="where-t">{meta}</span>}
                 {h.href && (
                   <a href={h.href} class="view">
                     View →
@@ -69,7 +69,7 @@ const line2 = rest.join(', ');
       </h1>
     </div>
     <div class="intro-ctl">
-      <button class="pill ctl" type="button" data-sound aria-pressed="false">Sound off</button>
+      <button class="pill ctl" type="button" data-sound aria-pressed="true">Sound on</button>
       <button class="pill ctl" type="button" data-skip>Skip intro →</button>
     </div>
   </div>
@@ -93,63 +93,34 @@ const line2 = rest.join(', ');
 </script>
 
 <script>
+  import { focusBeep, haptic, setSound, shutter, soundOn } from '../lib/feedback';
+
   const root = document.documentElement;
   const soundBtn = document.querySelector<HTMLButtonElement>('[data-sound]');
   const skipBtn = document.querySelector<HTMLButtonElement>('[data-skip]');
 
-  const read = () => {
-    try {
-      return localStorage.getItem('ag-sound') === '1';
-    } catch {
-      return false;
-    }
-  };
   const paint = (on: boolean) => {
     if (!soundBtn) return;
     soundBtn.setAttribute('aria-pressed', String(on));
     soundBtn.textContent = on ? 'Sound on' : 'Sound off';
   };
 
-  /** A soft two-part shutter click, synthesised so there is no audio file to download. */
-  function shutter() {
-    try {
-      const ctx = new AudioContext();
-      const burst = (at: number) => {
-        const len = Math.floor(ctx.sampleRate * 0.05);
-        const buf = ctx.createBuffer(1, len, ctx.sampleRate);
-        const d = buf.getChannelData(0);
-        for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 4);
-        const src = ctx.createBufferSource();
-        src.buffer = buf;
-        const hp = ctx.createBiquadFilter();
-        hp.type = 'highpass';
-        hp.frequency.value = 1800;
-        const g = ctx.createGain();
-        g.gain.value = 0.35;
-        src.connect(hp).connect(g).connect(ctx.destination);
-        src.start(ctx.currentTime + at);
-      };
-      burst(0);
-      burst(0.07);
-    } catch {
-      /* Browsers may block audio before the first interaction; stay silent. */
-    }
-  }
-
-  paint(read());
+  paint(soundOn());
   soundBtn?.addEventListener('click', () => {
-    const on = !read();
-    try {
-      localStorage.setItem('ag-sound', on ? '1' : '0');
-    } catch {}
+    const on = !soundOn();
+    setSound(on);
     paint(on);
-    if (on) shutter();
+    haptic();
+    if (on) focusBeep();
   });
 
   skipBtn?.addEventListener('click', () => root.classList.remove('intro'));
 
   if (root.classList.contains('intro')) {
-    if (read()) setTimeout(shutter, 1000);
+    // Half-press: focus locks (~1.0s, when the brackets turn sage), then the shutter.
+    // Silent if the browser has not allowed sound yet (no tap on the page so far).
+    setTimeout(focusBeep, 1000);
+    setTimeout(shutter, 1300);
     setTimeout(() => root.classList.remove('intro'), 4200);
   }
 </script>
@@ -158,9 +129,13 @@ const line2 = rest.join(', ');
   .hero-sec {
     padding-top: 8px;
   }
+  /* 3:2 — the native frame of DSLR / mirrorless sensors. On short screens the height is
+     capped so the headline and readout stay above the fold. */
   .hero {
     position: relative;
-    height: clamp(520px, calc(100svh - 108px), 900px);
+    aspect-ratio: 3 / 2;
+    max-height: max(480px, calc(100svh - 108px));
+    margin-inline: auto;
     border-radius: var(--radius-lg);
     overflow: hidden;
     background: var(--photo-bg);
@@ -308,7 +283,9 @@ const line2 = rest.join(', ');
   :global(html.intro) .hero-copy {
     animation: rise 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) 2.3s both;
   }
-  :global(html.intro .site-header) {
+  :global(html.intro .site-header),
+  :global(html.intro main > :not(.hero-sec)),
+  :global(html.intro .site-footer) {
     animation: fade-in 0.5s 3s both;
   }
 
@@ -345,14 +322,108 @@ const line2 = rest.join(', ');
     .readout .exp span:not(:first-child):not(.lens) {
       display: none;
     }
-    .hero-copy {
-      bottom: 136px;
+  }
+  @media (max-width: 900px) {
+    /* Exactly two single lines on phones, so long lens or place names can never
+       push the readout up into the headline. */
+    .readout {
+      flex-direction: column;
+      flex-wrap: nowrap;
+      gap: 6px;
+    }
+    .exp,
+    .where {
+      flex-wrap: nowrap;
+      min-width: 0;
+    }
+    .exp > span,
+    .where-t {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .exp > span:first-child,
+    .view {
+      flex: 0 0 auto;
     }
     .af {
-      width: 120px;
-      height: 90px;
-      left: calc(var(--hx) * 100% - 60px);
-      top: calc(var(--hy) * 100% - 45px);
+      width: 96px;
+      height: 72px;
+      left: calc(var(--hx) * 100% - 48px);
+      top: calc(var(--hy) * 66.667cqi - 36px);
+    }
+    .af .brackets {
+      --s: 20px;
+    }
+
+    /* Phones: the photo keeps its 3:2 frame (no portrait crop of a landscape shot);
+       the readout and headline sit below it on the page instead of over it. */
+    .hero {
+      aspect-ratio: auto;
+      max-height: none;
+      overflow: visible;
+      border-radius: 0;
+      background: none;
+    }
+    .hero-item {
+      position: relative;
+      inset: auto;
+      container-type: inline-size;
+    }
+    .hero-item::after {
+      display: none;
+    }
+    .hero-media {
+      position: relative;
+      aspect-ratio: 3 / 2;
+      border-radius: var(--radius);
+      overflow: hidden;
+      background: var(--photo-bg);
+    }
+    .veil {
+      bottom: auto;
+      height: 66.667cqi;
+      border-radius: var(--radius);
+    }
+    .readout {
+      position: static;
+      margin-top: 10px;
+      background: var(--surface);
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+      color: var(--text);
+    }
+    .lens,
+    .view {
+      color: var(--accent-ink);
+    }
+    .where {
+      color: var(--text-soft);
+    }
+    .view:hover {
+      color: var(--text);
+    }
+    .hero-copy {
+      position: static;
+      padding: 28px 2px 0;
+      color: var(--text);
+    }
+    .hero-copy .label,
+    .accent {
+      color: var(--accent-ink);
+    }
+    h1 {
+      font-size: clamp(44px, 13vw, 60px);
+    }
+    .intro-ctl {
+      top: 10px;
+      right: 10px;
+    }
+    .ctl {
+      min-height: 36px;
+      padding: 0 14px;
+      font-size: 13px;
     }
   }
 </style>

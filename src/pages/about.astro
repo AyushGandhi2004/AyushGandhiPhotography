@@ -105,7 +105,7 @@ const ld = [
 <style>
   .hero {
     padding-top: clamp(32px, 5vw, 56px);
-    grid-template-columns: 1fr 1.15fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
   }
   .portrait {
     position: relative;
@@ -146,7 +146,7 @@ const ld = [
   }
   .two {
     display: grid;
-    grid-template-columns: 1.2fr 1fr;
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
     gap: clamp(32px, 5vw, 64px);
     align-items: start;
   }
@@ -158,8 +158,8 @@ const ld = [
   }
   .mode {
     display: grid;
-    grid-template-columns: 64px 1fr auto;
-    gap: 20px;
+    grid-template-columns: clamp(40px, 12vw, 64px) minmax(0, 1fr) auto;
+    gap: clamp(12px, 3vw, 20px);
     align-items: center;
     padding: 18px 0;
     border-top: 1px solid var(--line);
@@ -179,7 +179,8 @@ const ld = [
     color: var(--accent-ink);
   }
   .name {
-    font: 700 24px var(--display);
+    overflow-wrap: break-word;
+    font: 700 clamp(19px, 5.5vw, 24px) var(--display);
     letter-spacing: -0.02em;
     transition: color 0.2s;
   }
@@ -201,6 +202,7 @@ const ld = [
   .gear li {
     display: flex;
     justify-content: space-between;
+    align-items: baseline;
     gap: 16px;
     padding: 16px 18px;
     border-radius: 14px;
@@ -208,8 +210,12 @@ const ld = [
     font-size: 14px;
   }
   .gk {
+    flex: 0 0 auto;
     color: var(--muted);
     text-transform: uppercase;
+  }
+  .gear li > span:last-child {
+    text-align: right;
   }
   .soft {
     margin-top: 12px;
@@ -238,10 +244,12 @@ const ld = [
   @media (max-width: 860px) {
     .hero,
     .two {
-      grid-template-columns: 1fr;
+      grid-template-columns: minmax(0, 1fr);
     }
     .portrait {
+      width: 100%;
       max-width: 420px;
+      margin-inline: auto;
     }
   }
 </style>

@@ -7,7 +7,7 @@ const env = loadEnv(process.env.NODE_ENV ?? 'production', process.cwd(), '');
 
 export default defineConfig({
   // Set SITE_URL in Vercel (and .env) to the real domain once you have it.
-  site: env.SITE_URL || 'https://ayush-gandhi-photography.vercel.app',
+  site: env.SITE_URL || 'https://ayushgandhiphotography.vercel.app',
   trailingSlash: 'always',
   integrations: [sitemap()],
   build: { inlineStylesheets: 'always' },

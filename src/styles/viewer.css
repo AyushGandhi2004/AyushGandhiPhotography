@@ -109,7 +109,7 @@
     right: 16px;
     bottom: 16px;
     display: grid;
-    grid-template-columns: 1.3fr 1fr;
+    grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
     gap: 20px;
     padding: 20px 22px;
     border-radius: 18px;
@@ -152,6 +152,7 @@
   }
   .lb-exif dd {
     margin: 3px 0 0;
+    overflow-wrap: anywhere;
   }
   .lb-nav {
     position: absolute;
@@ -181,10 +182,22 @@
     from { opacity: 0; transform: translateY(12px); }
   }
   @media (max-width: 760px) {
+    /* On phones the photo is often only ~230px tall: pin the info sheet to the bottom
+       of the screen instead of squeezing it inside the photo. */
     .lb-panel {
-      grid-template-columns: 1fr;
-      max-height: 60%;
+      position: fixed;
+      left: 8px;
+      right: 8px;
+      bottom: 8px;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 14px;
+      padding: 16px 18px;
+      max-height: 55svh;
       overflow: auto;
+      overscroll-behavior: contain;
+    }
+    .lb-title {
+      font-size: 20px;
     }
     .lb-nav,
     .lb-hint {

@@ -48,12 +48,16 @@ type Raw = any;
 function mapImg(raw: Raw): Img | undefined {
   const dims = raw?.asset?.metadata?.dimensions;
   if (!raw?.asset?._id || !dims) return undefined;
+  const c = raw.crop ?? { left: 0, right: 0, top: 0, bottom: 0 };
+  const cw = Math.max(0.01, 1 - (c.left ?? 0) - (c.right ?? 0));
+  const ch = Math.max(0.01, 1 - (c.top ?? 0) - (c.bottom ?? 0));
+  const clamp = (v: number) => Math.min(1, Math.max(0, v));
   return {
     sanity: { asset: { _id: raw.asset._id }, crop: raw.crop, hotspot: raw.hotspot },
-    width: dims.width,
-    height: dims.height,
+    width: Math.round(dims.width * cw),
+    height: Math.round(dims.height * ch),
     lqip: raw.asset.metadata.lqip,
-    hotspot: raw.hotspot ? { x: raw.hotspot.x, y: raw.hotspot.y } : undefined,
+    hotspot: raw.hotspot ? { x: clamp((raw.hotspot.x - (c.left ?? 0)) / cw), y: clamp((raw.hotspot.y - (c.top ?? 0)) / ch) } : undefined,
   };
 }
 
@@ -223,15 +227,31 @@ export async function fetchContent(): Promise<Content> {
       };
     });
 
+  // Hero and featured photos are copies picked in Sanity, not pages of their own.
+  // Point each one at the page of the same image in an album or category; otherwise at its link.
+  const pageByAsset = new Map<string, string>();
+  for (const p of [...albums.flatMap((a) => a.photos), ...categories.flatMap((c) => c.loose)]) {
+    const id = (p.image.sanity as { asset?: { _id?: string } } | undefined)?.asset?._id;
+    if (id && !pageByAsset.has(id)) pageByAsset.set(id, p.href);
+  }
+  const linkPhoto = (photo: Photo | undefined, fallback: string): Photo | undefined => {
+    if (!photo) return undefined;
+    const id = (photo.image.sanity as { asset?: { _id?: string } } | undefined)?.asset?._id;
+    return { ...photo, href: (id && pageByAsset.get(id)) || fallback };
+  };
+
   const st: Raw = raw.settings ?? {};
-  const heroCtx = { categorySlug: categories.find((c) => c.main)?.slug ?? categories[0]?.slug ?? 'photos' };
+  const mainCat = categories.find((c) => c.main) ?? categories[0];
+  const heroCtx = { categorySlug: mainCat?.slug ?? 'photos' };
   const hero: Hero[] = (st.hero ?? [])
     .map((h: Raw) => {
-      const photo = mapPhoto(h, heroCtx);
-      return photo ? { photo, href: linkHref(h.link) } : undefined;
+      const link = linkHref(h.link);
+      const photo = linkPhoto(mapPhoto(h, heroCtx), link ?? mainCat?.href ?? '/');
+      return photo ? { photo, href: link } : undefined;
     })
     .filter(Boolean);
-  const featuredPhoto = st.featured?.photo ? mapPhoto(st.featured.photo, heroCtx) : undefined;
+  const featuredLink = linkHref(st.featured?.link);
+  const featuredPhoto = linkPhoto(st.featured?.photo ? mapPhoto(st.featured.photo, heroCtx) : undefined, featuredLink ?? mainCat?.href ?? '/');
   const settings: Settings = {
     title: st.title || 'Ayush Gandhi Photography',
     tagline: st.tagline,
@@ -239,7 +259,7 @@ export async function fetchContent(): Promise<Content> {
     ogImage: mapImg(st.ogImage),
     hero,
     featured: featuredPhoto
-      ? { photo: featuredPhoto, title: st.featured.title, story: st.featured.story, href: linkHref(st.featured.link) }
+      ? { photo: featuredPhoto, title: st.featured.title, story: st.featured.story, href: featuredLink }
       : undefined,
     instagram: st.instagram,
     youtube: st.youtube,

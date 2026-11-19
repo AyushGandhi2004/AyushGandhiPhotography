@@ -142,7 +142,7 @@ const ld = [
     gap: 20px;
   }
   .title {
-    font-size: clamp(44px, 6vw, 84px);
+    font-size: clamp(36px, 6vw, 84px);
     letter-spacing: -0.045em;
   }
   .standfirst {
@@ -206,7 +206,7 @@ const ld = [
     line-height: 1.7;
   }
   .prose :global(figure) {
-    margin: 24px calc(-1 * clamp(0px, (100vw - 760px) / 2, 200px));
+    margin: 24px calc(-1 * clamp(0px, (100vw - 780px) / 2, 200px));
     display: grid;
     gap: 12px;
   }
@@ -237,7 +237,7 @@ const ld = [
   }
   .al {
     display: grid;
-    grid-template-columns: 220px 1fr auto;
+    grid-template-columns: 220px minmax(0, 1fr) auto;
     gap: 24px;
     align-items: center;
     padding: 18px;
@@ -299,7 +299,7 @@ const ld = [
       grid-template-columns: 1fr;
     }
     .al {
-      grid-template-columns: 1fr;
+      grid-template-columns: minmax(0, 1fr);
     }
     .arrow {
       display: none;

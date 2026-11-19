@@ -164,9 +164,7 @@ const description = album
                 <span class="label">← Previous</span>
                 <span class="pg-title">{prev.title}</span>
               </a>
-            ) : (
-              <span />
-            )}
+            ) : null}
             {next && (
               <a class="pg card right" href={next.href}>
                 <span class="label">Next →</span>
@@ -284,7 +282,7 @@ const description = album
   }
   .cover-title {
     margin-top: 14px;
-    font-size: clamp(44px, 7vw, 104px);
+    font-size: clamp(36px, 7vw, 104px);
     line-height: 0.9;
     letter-spacing: -0.05em;
   }
@@ -305,7 +303,7 @@ const description = album
   }
   .story {
     display: grid;
-    grid-template-columns: 260px 1fr auto;
+    grid-template-columns: 260px minmax(0, 1fr) auto;
     gap: 28px;
     align-items: center;
     padding: 18px;
@@ -356,6 +354,7 @@ const description = album
     color: var(--text);
   }
   .pg.right {
+    grid-column: 2;
     text-align: right;
   }
   .pg-title {
@@ -370,7 +369,7 @@ const description = album
     padding-bottom: 32px;
   }
   .film-title {
-    font-size: clamp(44px, 7vw, 104px);
+    font-size: clamp(36px, 7vw, 104px);
     line-height: 0.9;
     letter-spacing: -0.05em;
   }
@@ -407,7 +406,10 @@ const description = album
       display: none;
     }
     .pager {
-      grid-template-columns: 1fr;
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .pg.right {
+      grid-column: auto;
     }
   }
 </style>

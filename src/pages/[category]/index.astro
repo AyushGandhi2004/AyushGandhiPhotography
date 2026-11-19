@@ -49,6 +49,7 @@ const ld =
   category.kind === 'films'
     ? [crumbs, ...films.map((f) => video(f, site))]
     : [crumbs, gallery(category.title, category.href, photos, site, category.intro)];
+const longestWord = Math.max(...category.title.split(/\s+/).map((w) => w.length));
 const shareImg = ogUrl(category.cover ?? photos[0]?.image ?? featured?.poster);
 ---
 
@@ -62,7 +63,7 @@ const shareImg = ogUrl(category.cover ?? photos[0]?.image ?? featured?.poster);
   <section class="wrap head">
     <div class="head-text">
       <nav aria-label="Breadcrumb" class="breadcrumb"><a href="/">Home</a> / <span aria-current="page">{category.title}</span></nav>
-      <h1 class="page-title">{category.title}</h1>
+      <h1 class="page-title fit" style={`--chars:${longestWord}`}>{category.title}</h1>
       {category.intro && <p class="lede">{category.intro}</p>}
     </div>
     {
@@ -207,13 +208,14 @@ const shareImg = ogUrl(category.cover ?? photos[0]?.image ?? featured?.poster);
 <style>
   .head {
     display: grid;
-    grid-template-columns: 1.3fr 1fr;
+    grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
     gap: 48px;
     align-items: end;
     padding-top: clamp(32px, 5vw, 56px);
     padding-bottom: clamp(24px, 4vw, 48px);
   }
   .head-text {
+    container-type: inline-size;
     display: flex;
     flex-direction: column;
     gap: 18px;
@@ -326,9 +328,12 @@ const shareImg = ogUrl(category.cover ?? photos[0]?.image ?? featured?.poster);
     font-size: 12px;
     color: var(--muted);
   }
+  .fit {
+    font-size: clamp(30px, min(9.5vw, calc(100cqi / (var(--chars) * 0.56))), 148px);
+  }
   @media (max-width: 860px) {
     .head {
-      grid-template-columns: 1fr;
+      grid-template-columns: minmax(0, 1fr);
     }
   }
 </style>

@@ -11,6 +11,8 @@ const { modes, current } = Astro.props;
 const step = 360 / modes.length;
 const active = Math.max(0, modes.findIndex((m) => m.code === current));
 const activeName = modes[active]?.name ?? 'Auto';
+/** Font size (px) that fits a name inside the ring's centre. */
+const fitSize = (name: string) => Math.min(21, Math.floor(150 / (Math.max(...name.split(/\s+/).map((w) => w.length)) * 0.6)));
 const positions = modes.map((m, i) => {
   const a = (i * step * Math.PI) / 180;
   return { ...m, i, left: 50 + 38.5 * Math.sin(a), top: 50 - 38.5 * Math.cos(a) };
@@ -26,6 +28,13 @@ const positions = modes.map((m, i) => {
     </span>
   </summary>
   <div class="dial-pop">
+    <button class="snd" type="button" data-dial-sound aria-pressed="true" aria-label="Sound effects">
+      <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" fill="currentColor" stroke="none"></path>
+        <path class="snd-on" d="M15.5 9a4.2 4.2 0 0 1 0 6M18 6.5a7.8 7.8 0 0 1 0 11"></path>
+        <path class="snd-off" d="M16 9.5l5 5M21 9.5l-5 5"></path>
+      </svg>
+    </button>
     <div class="ring-wrap">
       <span class="pointer" aria-hidden="true"></span>
       <nav class="ring" aria-label="Categories" style={`--rot:${-active * step}deg`} data-dial-ring>
@@ -48,7 +57,7 @@ const positions = modes.map((m, i) => {
       </nav>
       <div class="center" aria-hidden="true">
         <span class="mono dial-k">MODE</span>
-        <span class="center-name" data-dial-center>{activeName}</span>
+        <span class="center-name" data-dial-center style={`font-size:${fitSize(activeName)}px`}>{activeName}</span>
       </div>
     </div>
     <p class="hint mono">Each position opens that category · ← → to turn</p>
@@ -56,6 +65,8 @@ const positions = modes.map((m, i) => {
 </details>
 
 <script>
+  import { haptic, setSound, soundOn, tick } from '../lib/feedback';
+
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   document.querySelectorAll<HTMLDetailsElement>('[data-dial]').forEach((dial) => {
@@ -64,11 +75,40 @@ const positions = modes.map((m, i) => {
     const ind = dial.querySelector<HTMLElement>('[data-dial-ind]')!;
     const center = dial.querySelector<HTMLElement>('[data-dial-center]')!;
     const links = [...dial.querySelectorAll<HTMLAnchorElement>('.pos')];
+    const sndBtn = dial.querySelector<HTMLButtonElement>('[data-dial-sound]')!;
+    let at = Math.max(0, links.findIndex((l) => l.classList.contains('on')));
+
+    const paintSound = () => sndBtn.setAttribute('aria-pressed', String(soundOn()));
+    paintSound();
+    sndBtn.addEventListener('click', () => {
+      setSound(!soundOn());
+      paintSound();
+      haptic();
+      tick();
+    });
+
+    /** One tick per detent the ring passes (max 6, ~45ms apart), and one light tap. */
+    const detents = (from: number, to: number) => {
+      const n = links.length;
+      const steps = Math.min(6, Math.min((to - from + n) % n, (from - to + n) % n));
+      for (let k = 0; k < steps; k++) tick(k * 0.045);
+      if (steps) haptic();
+    };
+
+    dial.querySelector('summary')?.addEventListener('click', () => {
+      tick();
+      haptic();
+    });
 
     const turnTo = (i: number) => {
+      detents(at, i);
+      at = i;
       ring.style.setProperty('--rot', `${-i * step}deg`);
       ind.style.setProperty('--deg', `${i * step}deg`);
-      center.textContent = links[i].dataset.name ?? '';
+      const name = links[i].dataset.name ?? '';
+      center.textContent = name;
+      const longest = Math.max(...name.split(/\s+/).map((w) => w.length));
+      center.style.fontSize = `${Math.min(21, Math.floor(150 / (longest * 0.6)))}px`;
     };
 
     dial.addEventListener('toggle', () => {
@@ -188,7 +228,7 @@ const positions = modes.map((m, i) => {
     width: 300px;
     padding: 22px 22px 16px;
     border-radius: 26px;
-    background: color-mix(in srgb, var(--surface) 96%, transparent);
+    background: var(--surface);
     border: 1px solid var(--line-strong);
     box-shadow: 0 30px 80px rgb(0 0 0 / 0.45);
     display: flex;
@@ -197,13 +237,38 @@ const positions = modes.map((m, i) => {
     gap: 12px;
     animation: pop 0.25s var(--ease);
   }
+  .snd {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    z-index: 3;
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    transition: color 0.2s, border-color 0.2s;
+  }
+  .snd:hover {
+    color: var(--text);
+    border-color: var(--line-strong);
+  }
+  .snd[aria-pressed='true'] .snd-off,
+  .snd[aria-pressed='false'] .snd-on {
+    display: none;
+  }
   @keyframes pop {
     from { opacity: 0; transform: translateY(-6px) scale(0.98); }
   }
   .ring-wrap {
     position: relative;
-    width: 256px;
-    height: 256px;
+    width: min(256px, 100%);
+    aspect-ratio: 1;
   }
   .pointer {
     position: absolute;
@@ -273,11 +338,13 @@ const positions = modes.map((m, i) => {
   }
   .center-name {
     font: 700 21px var(--display);
+    line-height: 1.1;
     letter-spacing: -0.02em;
     color: var(--accent-ink);
-    max-width: 120px;
+    max-width: 150px;
   }
   .hint {
+    max-width: 100%;
     font-size: 11px;
     color: var(--muted);
     text-align: center;
@@ -296,6 +363,9 @@ const positions = modes.map((m, i) => {
       right: 16px;
       top: 76px;
       width: auto;
+      max-width: 340px;
+      margin-left: auto;
+      padding: 18px 14px 14px;
     }
   }
 </style>

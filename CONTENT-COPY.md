@@ -56,42 +56,55 @@ Other tagline options (text after the comma shows on the second line in sage):
 
 ## 3. Categories (Intro + SEO, one block each)
 
-### Wildlife (WL · main)
-- **Intro:** Birds close to home and wildlife from trips in the field, with more owls than I can apologise for. Most of these frames took hours of waiting for a few seconds of the right light and behaviour.
-- **SEO title:** Wildlife, Bird & Owl Photography | Ayush Gandhi
-- **SEO description:** Wildlife and bird photographs by Ayush Gandhi, with a special focus on owls, from everyday birding at home to field trips.
+### Wildlife (WL · main) — final
+- **Intro:** Mostly birds. Mammals when the trail leads to a safari. Every frame earned.
+- **SEO title:** Wildlife & Bird Photography | Ayush Gandhi
+- **SEO description:** Wildlife and bird photography by Ayush Gandhi. Owls, birding across Gujarat, and safaris at Tadoba, Jhalana and Velavadar.
+- **Home page tile:** your pick (portrait 4:5 works best); alt text = what's in the frame, e.g. "An Indian eagle-owl perched on a rock at dusk".
+- **Photos without an album:** your pick.
+- **Albums (mix):** trips → "Tadoba Tiger Reserve", "Jhalana Leopard Reserve", "Velavadar Blackbuck National Park" (Location filled, dates filled); subjects → "Owls", "Birds of Nadiad", "Birding in Gandhinagar", "Birding in Vadodara" (Location only on the place-based ones, empty on "Owls").
 
-### Street (ST)
-- **Intro:** Old Ahmedabad on heritage walks and the carved stone of the Adalaj stepwell: everyday life and history, in the light that passes through them.
+### Street (ST) — final
+- **Intro:** Life as it happens. People, festivals, old stone. Unposed and unrepeatable.
 - **SEO title:** Street & Heritage Photography | Ayush Gandhi
-- **SEO description:** Street and heritage photography by Ayush Gandhi from the Ahmedabad heritage walk and Adalaj Vav, Gujarat.
+- **SEO description:** Street photography by Ayush Gandhi. People, festivals, markets and heritage from Ahmedabad and Adalaj Vav, Gujarat. Stories in a single frame.
+- **Albums:** none. All photos go in "Photos without an album".
+- **Per photo:** Location only where useful (Ahmedabad, Adalaj Vav). No college name.
 
-### Astrophotography (AS)
-- **Intro:** The night sky away from city lights. Stars, the Milky Way and long exposures that show what the eye alone can't.
-- **SEO title:** Astrophotography | Ayush Gandhi
-- **SEO description:** Night sky photography by Ayush Gandhi: stars, the Milky Way and long exposures far from city lights.
+### Astrophotography (AS) — final
+- **Intro:** Dark skies. Long exposures. Kutch was the first night, not the last.
+- **SEO title:** Astrophotography: Milky Way & Night Sky | Ayush Gandhi
+- **SEO description:** Astrophotography by Ayush Gandhi. The Milky Way, nebulae, night-sky landscapes and portraits under the dark skies of Kutch, Gujarat.
+- **Albums:** none for now. All photos in "Photos without an album". Switch to one album per trip once there are more trips.
+- **Per photo:** Location "Kutch, Gujarat".
 
-### Concert (CO)
-- **Intro:** Stages, lights and crowds. Fast, low-light work where the moment is gone in a second.
-- **SEO title:** Concert Photography | Ayush Gandhi
-- **SEO description:** Concert and live music photography by Ayush Gandhi: stage light, performers and the energy of the crowd.
+### Concert (CO) — final
+- **Intro:** Fire. Confetti. A crowd in full voice. Artists in their zone.
+- **SEO title:** Concert & Live Music Photography | Ayush Gandhi
+- **SEO description:** Concert photography by Ayush Gandhi. Stage fire, confetti, crowds and artists in their zone, from live shows by Asees Kaur, Shaan, Mohit Chauhan and more.
+- **Albums:** none. All photos in "Photos without an album".
+- **Per photo:** Title = the moment, not the person ("Confetti drop", "Fire on stage", "Lost in the chorus"). Alt text names the artist ("Mohit Chauhan singing under red stage lights").
 
-### Filmmaking (FM)
-- **Intro:** Films I've contributed to behind the camera, including one as director of photography.
-- **SEO title:** Films | Ayush Gandhi
-- **SEO description:** Films Ayush Gandhi has contributed to as a camera operator and director of photography.
+### Filmmaking (FM) — final
+- **Intro:** Short films, behind the camera. Two of them made in 50 hours.
+- **SEO title:** Short Films & Cinematography | Ayush Gandhi
+- **SEO description:** Short films shot by Ayush Gandhi as director of photography and cinematographer, including two entries for the IFP 50 Hour Filmmaking Challenge.
 
 ---
 
-## 4. Films (one entry per YouTube video)
-| Field | Text |
-|---|---|
-| Title | the video's title |
-| Video link | the YouTube URL |
-| Role | **Director of Photography** for that film; for the others, what you did, e.g. "Camera", "Second camera", "Editing" |
-| Year / Length / Format | e.g. 2024 / 3:42 / 4K · 24p |
-| Description | 1–2 lines on what the film is about |
-| Featured | turn on for the DOP film so it shows large at the top |
+## 4. Films (one entry each)
+
+| Field | Virasat | The Second Take | Unboxed |
+|---|---|---|---|
+| Video link | https://www.instagram.com/reel/DRyUkGuEsIg/ | https://youtu.be/Tt5HBdLF4hI | https://youtu.be/8yUiqfQTefA |
+| Role | Director of Photography | Cinematographer | Cinematographer |
+| Format | Short film | Short film | Short film |
+| Description | Entry for the IFP 50 Hour Filmmaking Challenge. *(+ one line on the story — pending)* | Entry for the IFP 50 Hour Filmmaking Challenge. *(+ one line — pending)* | *(one line — pending)* |
+| Year / Length | pending | pending | pending |
+| Poster | required (Instagram gives no thumbnail) | optional | optional |
+| Featured | pending decision | | |
+
+Links: drop the `?si=…` tracking part from YouTube links.
 
 ## 5. Per-photo fields (every upload)
 | Field | How to write it |
@@ -101,7 +114,5 @@ Other tagline options (text after the comma shows on the second line in sage):
 | Species | pick from the managed list (Wildlife) |
 
 ## 6. Album and journal ideas from what you've told me
-- **Album (Street):** Ahmedabad Heritage Walk. Location: Ahmedabad, Gujarat. *Description:* A morning on foot through the pols, carved doorways and temples of the old walled city.
-- **Album (Street):** Adalaj Vav. Location: Adalaj, Gujarat. *Description:* Five storeys of carved sandstone and the slow movement of light down the steps.
 - **Album (Wildlife):** Owls. *Description:* Every owl I've had the patience, and the luck, to find.
 - **Journal story:** *From my mother's phone to the field*. Standfirst: How a borrowed phone in 8th grade, two patient mentors and a lot of birding turned into this site.
